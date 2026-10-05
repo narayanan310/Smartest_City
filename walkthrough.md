@@ -77,7 +77,7 @@ playback speed.
 | Fleet traction energy | 54,716 kWh over 80,218 km |
 | Battery swaps | 168 — **77 solar-funded**, 91 grid-assisted |
 | CO₂ avoided | 39.9 t/day · 10,881 t/yr (self-consumed basis) |
-| Tariff saving | ₹415.8k/day · ₹11.33 Cr/yr |
+| Tariff saving | ₹449.8k/day · ₹12.26 Cr/yr |
 | Dissolved oxygen | 4.29 – 6.61 mg/day (min above the 4.0 threshold) |
 | Annual generation | 21.36 GWh (analytic planning estimate 21.96 GWh) |
 
@@ -115,7 +115,7 @@ Read `docs/ASSUMPTIONS_AND_LIMITATIONS.md` before quoting any number. The most i
   routing service.
 - Economics are academic estimates. Each self-consumed kilowatt-hour is credited exactly
   once, at the displaced-fuel or retail value depending on which load it serves, so
-  the same energy is never counted twice. Annual benefit Rs 29.94 Cr.
+  the same energy is never counted twice. Annual benefit Rs 21.91 Cr/yr.
 ---
 
 ## Addendum — hybrid data modes & expanded network

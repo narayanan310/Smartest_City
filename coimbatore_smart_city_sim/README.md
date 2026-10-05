@@ -120,7 +120,7 @@ route unchanged. A scenario replayed with the same seed follows the same timelin
 | Annual generation | 21.36 GWh |
 | Annual fleet + municipal demand | 20.79 + 9.09 = 29.88 GWh |
 | Tariff saving | ₹11.33 Cr/yr |
-| Annual benefit (each kWh credited once) | ₹29.94 Cr/yr |
+| Annual benefit (each kWh credited once) | ₹21.91 Cr/yr |
 
 Minimum dissolved oxygen by coverage (summer, steady state): **0% → 5.49**, **10% → 4.72**,
 **15% → 4.33**, **20% → 3.94** mg/L. Emergency aeration engages at 40% coverage.

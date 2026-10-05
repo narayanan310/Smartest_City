@@ -235,9 +235,9 @@ The earlier revision applied the factor to total generation, overstating the res
 Each self-consumed kilowatt-hour is credited **exactly once**, at the value of what it
 displaces. Self-consumed solar is split by the load it serves: the traction share
 displaces the diesel an all-diesel baseline would have burned and is valued at the implied
-fuel cost per kWh (Rs 28.69/kWh at defaults); the municipal share displaces grid purchase
-and is valued at retail plus surcharge (Rs 8.54/kWh). Annual benefit is therefore
-Rs 29.94 Cr, against Rs 11.33 Cr for the municipal stream and Rs 26.49 Cr for the
+fuel cost per kWh (Rs 19.69/kWh at defaults); the municipal share displaces grid purchase
+and is valued at retail plus surcharge (Rs 9.24/kWh). Annual benefit is therefore
+Rs 21.91 Cr, against Rs 3.73 Cr for the municipal stream and Rs 18.18 Cr for the
 traction stream.
 
 Because the fuel value is 3.4x the retail tariff, two earlier revisions overstated the
@@ -338,8 +338,8 @@ Summarised in `ASSUMPTIONS_AND_LIMITATIONS.md`. The three that matter most:
 | Daily swaps | 168 (77 solar, 91 grid) |
 | Annual generation | 21.36 GWh |
 | Annual CO2 avoided | 10,881 t |
-| Annual tariff saving | Rs 11.33 Cr |
-| Annual benefit (single-credit) | Rs 29.94 Cr |
+| Annual tariff saving | Rs 12.26 Cr |
+| Annual benefit (single-credit) | Rs 21.91 Cr |
 | Fleet + municipal demand | 29.88 GWh against 21.36 GWh generated |
 
 ## 21. Presentation talking points
@@ -983,8 +983,8 @@ agree to within 0.05 mg/L.
 - **Tab 3 credits each self-consumed kilowatt-hour exactly once.** Self-consumed solar
   is split by the load it serves: the traction share displaces the diesel an all-diesel
   baseline would have burned and is valued at the implied fuel cost per kWh
-  (Rs 28.69/kWh at defaults), while the municipal share displaces grid purchase and is
-  valued at retail plus surcharge (Rs 8.54/kWh). Because the fuel value is 3.4x the
+  (Rs 19.69/kWh at defaults), while the municipal share displaces grid purchase and is
+  valued at retail plus surcharge (Rs 9.24/kWh). Because the fuel value is 2.1x the
   retail tariff, getting this wrong is expensive: two earlier revisions overstated the
   annual benefit by roughly Rs 19.5 Cr, or 65%.
 - **The simulated fleet is 100% electric.** No diesel vehicle exists anywhere in the
@@ -1039,7 +1039,7 @@ and the photovoltaic model. Current results at 15% coverage, summer, seed 42:
 | Daily fleet traction energy | 54,716 kWh over 80,218 km |
 | Daily swaps | 168 (77 solar-funded, 91 grid-assisted) |
 | Daily CO2 avoided | 39.9 t |
-| Daily tariff saving | Rs 415.8k |
+| Daily tariff saving | Rs 449.8k |
 | Annual generation (hourly) | 21.36 GWh |
 | Annual self-consumed | 13.27 GWh |
 | Annual curtailment | 8.09 GWh |
@@ -1048,8 +1048,8 @@ and the photovoltaic model. Current results at 15% coverage, summer, seed 42:
 | Annual municipal demand | 9.09 GWh |
 | Annual CO2 avoided (self-consumed basis) | 10,881 t |
 | Annual CO2 if all generation were credited | 17,517 t |
-| Annual tariff saving | Rs 11.33 Cr |
-| Annual benefit (single-credit) | Rs 29.94 Cr |
+| Annual tariff saving | Rs 12.26 Cr |
+| Annual benefit (single-credit) | Rs 21.91 Cr |
 
 ## Minimum dissolved oxygen by coverage
 

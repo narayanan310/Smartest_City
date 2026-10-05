@@ -166,8 +166,8 @@ agree to within 0.05 mg/L.
 - **Tab 3 credits each self-consumed kilowatt-hour exactly once.** Self-consumed solar
   is split by the load it serves: the traction share displaces the diesel an all-diesel
   baseline would have burned and is valued at the implied fuel cost per kWh
-  (Rs 28.69/kWh at defaults), while the municipal share displaces grid purchase and is
-  valued at retail plus surcharge (Rs 8.54/kWh). Because the fuel value is 3.4x the
+  (Rs 19.69/kWh at defaults), while the municipal share displaces grid purchase and is
+  valued at retail plus surcharge (Rs 9.24/kWh). Because the fuel value is 2.1x the
   retail tariff, getting this wrong is expensive: two earlier revisions overstated the
   annual benefit by roughly Rs 19.5 Cr, or 65%.
 - **The simulated fleet is 100% electric.** No diesel vehicle exists anywhere in the

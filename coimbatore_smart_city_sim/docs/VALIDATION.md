@@ -24,7 +24,7 @@ simulated/expanded, see `docs/HYBRID_DATA_MODES.md` for that column):
 | Daily fleet traction energy | 54,716 kWh over 80,218 km |
 | Daily swaps | 168 (77 solar-funded, 91 grid-assisted) |
 | Daily CO2 avoided | 39.9 t |
-| Daily tariff saving | Rs 415.8k |
+| Daily tariff saving | Rs 449.8k |
 | Annual generation (hourly) | 21.36 GWh |
 | Annual self-consumed | 13.27 GWh |
 | Annual curtailment | 8.09 GWh |
@@ -33,8 +33,8 @@ simulated/expanded, see `docs/HYBRID_DATA_MODES.md` for that column):
 | Annual municipal demand | 9.09 GWh |
 | Annual CO2 avoided (self-consumed basis) | 10,881 t |
 | Annual CO2 if all generation were credited | 17,517 t |
-| Annual tariff saving | Rs 11.33 Cr |
-| Annual benefit (single-credit) | Rs 29.94 Cr |
+| Annual tariff saving | Rs 12.26 Cr |
+| Annual benefit (single-credit) | Rs 21.91 Cr |
 
 ## Minimum dissolved oxygen by coverage
 

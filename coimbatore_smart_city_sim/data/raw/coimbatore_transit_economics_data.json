@@ -1,59 +1,19 @@
 {
+  "_comment": "Transit operations, tariffs and carbon factors. Each block carries provenance with a verification_status. Nothing is presented as verified unless a published source was located and read.",
   "provenance": {
-    "sources": [
-      "Tamil Nadu State Transport Corporation (TNSTC) Coimbatore Division Operational Reports",
-      "Tamil Nadu Electricity Regulatory Commission (TNERC) Tariff Order No. 6 (Public EV Charging & HT Tariffs)",
-      "Central Electricity Authority (CEA) CO2 Baseline Database for Indian Power Sector (User Guide v19/v20)",
-      "Indian Oil Corporation Ltd (IOCL) Coimbatore Retail Fuel Pricing"
+    "sources_consulted": [
+      "TNERC Suo-motu Order No. 6 of 2023, dated 30-06-2023, effective 01-07-2023 (Tariff for Distribution FY 2023-24), clause 3.1.7 High Tension Tariff V - Public EV Charging Stations (explicitly covers battery swapping)",
+      "CEA CO2 Baseline Database for the Indian Power Sector, Version 20 (Dec 2024); User Guide v21",
+      "Gelera-Adefuin, M.J. (2019) IJITEE v8(6) - Ukkadam Lake water quality survey (n=14)",
+      "Nept Journal - Monitoring the Pollution Intensity of Wetlands of Coimbatore",
+      "NASA POWER API v2.10.0 point query, 10.99N 76.96E, 2023"
     ],
-    "verification_date": "2026-10-05"
+    "verification_date": "2026-10-06",
+    "honesty_note": "Blocks marked verification_status='assumption' are inherited project assumptions with no confirmed primary source. They must not be cited as measured values."
   },
   "transit_operations": {
-    "operator": "TNSTC Coimbatore",
-    "fleet_archetype": "12m Urban Transit Bus (Electric Retrofit / Standard Electric)",
+    "operator": "TNSTC Coimbatore Division",
     "average_daily_km_per_bus": 220.0,
-    "operating_hours": [
-      6.0,
-      22.0
-    ],
-    "corridors": [
-      {
-        "id": "R1",
-        "name": "Avinashi Road Express Corridor",
-        "origin": "Gandhipuram Central Bus Stand",
-        "destination": "Chinniyampalayam / KMCH / SITRA Airport",
-        "length_km": 15.2,
-        "named_stops": 14,
-        "traffic_weight": 0.35
-      },
-      {
-        "id": "R2",
-        "name": "Pollachi Road Arterial Corridor",
-        "origin": "Ukkadam Bus Stand",
-        "destination": "Sundarapuram / Eachanari Temple / Kinathukadavu",
-        "length_km": 11.8,
-        "named_stops": 10,
-        "traffic_weight": 0.25
-      },
-      {
-        "id": "R3",
-        "name": "Mettupalayam Road Northern Corridor",
-        "origin": "Gandhipuram",
-        "destination": "Saibaba Colony / Thudiyalur / Periyanaickenpalayam",
-        "length_km": 14.1,
-        "named_stops": 12,
-        "traffic_weight": 0.25
-      },
-      {
-        "id": "R4",
-        "name": "Trichy Road Connector",
-        "origin": "Singanallur Bus Stand",
-        "destination": "Ramanathapuram / Sungam / Ondipudur",
-        "length_km": 10.8,
-        "named_stops": 10,
-        "traffic_weight": 0.15
-      }
-    ],
     "energy_consumption": {
       "nominal_electric_kwh_per_km": 1.0,
       "traffic_congested_kwh_per_km": 1.25,
@@ -65,31 +25,138 @@
       ]
     },
     "diesel_counterfactual": {
-      "diesel_fuel_economy_km_per_litre": 3.5,
-      "daily_diesel_burned_litres_per_bus": 62.86,
+      "diesel_fuel_economy_km_per_litre": 5.1,
+      "diesel_fuel_economy_km_per_litre_previous_draft": 3.5,
+      "daily_diesel_burned_litres_per_bus": 43.14,
       "diesel_price_inr_per_litre": 100.06,
-      "implied_diesel_fuel_value_inr_per_kwh": 28.69
+      "implied_diesel_fuel_value_inr_per_kwh": 19.71
     },
-    "corridor_scope_note": "R1-R4 are illustrative demand archetypes for vetting tariff/energy arithmetic. They are NOT the simulated network geometry: the model runs Route 69/1/2/3 (standard) plus Route 45/70 (expanded) from src/config/settings.py."
+    "provenance": {
+      "kind": "mixed",
+      "verification_status": "verified_with_assumptions",
+      "verified": [
+        "fleet strength 2,559 as on 31.10.2025",
+        "city fuel economy ~5.10 KMPL",
+        "rural fuel economy 5.57 KMPL",
+        "electric bus procurement programme"
+      ],
+      "assumption": [
+        "220 km/day per bus",
+        "219 kWh/day traction energy",
+        "Rs 100.06/litre diesel price",
+        "pack capacity and SOC window"
+      ],
+      "note": "220 km/day is a plausible city-bus duty cycle but was not confirmed against a TNSTC published per-vehicle figure; the corporation figure of 10.81 lakh km/day spans intercity, hilly and town operations and cannot be divided by fleet size to give a city-bus duty cycle. The diesel price is an approximate retail figure for the period, not a dated IOCL bulletin. Treat the assumption group as editable."
+    },
+    "corridor_archetypes": [
+      {
+        "id": "R1",
+        "name": "Avinashi Road Express Corridor",
+        "length_km": 15.2,
+        "named_stops": 14,
+        "traffic_weight": 0.35
+      },
+      {
+        "id": "R2",
+        "name": "Pollachi Road Arterial Corridor",
+        "length_km": 11.8,
+        "named_stops": 10,
+        "traffic_weight": 0.25
+      },
+      {
+        "id": "R3",
+        "name": "Mettupalayam Road Northern Corridor",
+        "length_km": 14.1,
+        "named_stops": 12,
+        "traffic_weight": 0.25
+      },
+      {
+        "id": "R4",
+        "name": "Trichy Road Connector",
+        "length_km": 10.8,
+        "named_stops": 10,
+        "traffic_weight": 0.15
+      }
+    ],
+    "corridor_archetypes_note": "Illustrative demand archetypes used only to vet tariff and energy arithmetic. They are NOT the simulated network geometry, which lives in src/config/settings.py as Route 69/1/2/3 (standard) and Route 45/70 (expanded).",
+    "corridor_archetypes_provenance": {
+      "kind": "project_definition",
+      "verification_status": "assumption"
+    },
+    "verified_operations_reference": {
+      "fleet_strength_total": 2559,
+      "fleet_spare_buses": 238,
+      "town_buses": 1171,
+      "mofussil_buses": 1029,
+      "ghat_buses": 359,
+      "branches": 43,
+      "kilometres_per_day_lakhs": 10.81,
+      "passengers_per_day_lakhs": 20.76,
+      "as_on": "2025-10-31",
+      "city_fuel_economy_kmpl": 5.1,
+      "rural_fuel_economy_kmpl": 5.57,
+      "electric_bus_programme": "KfW-funded procurement of 12,000 BS-VI and 2,000 electric buses; 500 electric buses for Chennai, Madurai and Coimbatore, with 100 e-buses in the first phase.",
+      "provenance": {
+        "kind": "published",
+        "verification_status": "verified",
+        "sources": [
+          "TNSTC (Coimbatore) Ltd RTI handbook, tn.gov.in (fleet strength and daily KMs as on 31.10.2025)",
+          "The Times of India, 13 Apr 2022, 'TNSTC Coimbatore division saves more than 3,300 litres of diesel daily' (city mileage ~5.10 KMPL, rural 5.57 KMPL)",
+          "Government of Tamil Nadu, Economic Review 2022-23, Transport Department (state STU fuel performance 5.33 KMPL average, 2021-22)"
+        ],
+        "correction_note": "The earlier draft used 3.5 km/L, which is well below the published TNSTC Coimbatore city figure of ~5.10 KMPL and appears to be a generic fleet figure rather than a Coimbatore measurement. Using 3.5 overstated daily diesel burn by ~46% (62.86 L vs 43.14 L per bus)."
+      }
+    }
   },
   "electricity_tariffs": {
-    "grid_utility": "TANGEDCO (Tamil Nadu Generation and Distribution Corporation)",
+    "order_reference": "TNERC Suo-motu Order No. 6 of 2023, effective 01-07-2023",
+    "applicable_category": "HT-V Public EV Charging Station (includes battery-swapping stations)",
     "public_ev_charging_tod_tariffs_inr_per_kwh": {
-      "solar_hours_09_00_to_16_00": 6.5,
-      "normal_offpeak_hours_16_00_to_18_00_and_22_00_to_06_00": 8.1,
-      "peak_hours_06_00_to_09_00_and_18_00_to_22_00": 9.75
+      "solar_hours_09_00_to_16_00": 6.0,
+      "peak_hours_06_00_to_09_00_and_18_00_to_22_00": 9.0,
+      "normal_offpeak_hours_16_00_to_18_00_and_22_00_to_06_00": 7.5
+    },
+    "demand_charge_rs_per_kva_per_month": {
+      "above_112_kw": 138.0,
+      "51_to_112_kw": 75.0
+    },
+    "provenance": {
+      "kind": "published",
+      "verification_status": "verified",
+      "source": "TNERC Suo-motu Order No. 6 of 2023, dated 30-06-2023, effective 01-07-2023 (Tariff for Distribution FY 2023-24), clause 3.1.7 High Tension Tariff V - Public EV Charging Stations (explicitly covers battery swapping)",
+      "units": "commission-determined energy charges in paise/kWh (600 / 900 / 750) converted to Rs/kWh",
+      "correction_note": "An earlier draft carried 6.50 / 9.75 / 8.10. Those rates do not appear in TNERC Order No. 6 of 2023 and are corrected here to the published 6.00 / 9.00 / 7.50."
     },
     "commercial_ht_tariff_base_inr_per_kwh": 8.0,
     "open_access_wheeling_surcharge_inr_per_kwh": 0.54,
-    "blended_displaced_retail_cost_inr_per_kwh": 8.54
+    "secondary_assumptions_provenance": {
+      "kind": "project_assumption",
+      "verification_status": "assumption",
+      "note": "The 8.00 base commercial rate and 0.54 open-access surcharge are inherited project assumptions driving the simulated mode. Not re-verified against the current TANGEDCO schedule; confirm before external citation."
+    }
   },
   "carbon_emissions": {
     "cea_grid_emission_factors_kg_co2_per_kwh": {
-      "baseline_2022_23": 0.823,
+      "2019_20": 0.713,
+      "2020_21": 0.703,
+      "2021_22": 0.715,
+      "baseline_2022_23": 0.716,
       "official_2023_24": 0.727,
-      "provisional_2024_25": 0.71,
-      "simulation_adopted_constant": 0.82
+      "provisional_2024_25": 0.71
     },
-    "diesel_combustion_emission_factor_kg_co2_per_litre": 2.68
+    "diesel_combustion_emission_factor_kg_co2_per_litre": 2.68,
+    "provenance": {
+      "kind": "published",
+      "verification_status": "verified",
+      "source": "CEA CO2 Baseline Database for the Indian Power Sector, Version 20 (Dec 2024); User Guide v21",
+      "unit_note": "CEA publishes tCO2/MWh, numerically identical to kgCO2/kWh.",
+      "series_note": "Weighted-average grid emission factor including renewable generation.",
+      "correction_note": "An earlier draft recorded 0.823 for 2022-23. The CEA series gives 0.716; corrected."
+    },
+    "diesel_factor_provenance": {
+      "kind": "stoichiometric",
+      "verification_status": "standard",
+      "note": "2.68 kgCO2/L is the conventional stoichiometric diesel combustion factor."
+    }
   }
 }

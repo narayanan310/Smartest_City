@@ -74,5 +74,31 @@
     "202311": 2.12,
     "202312": 2.85
   },
-  "notes": "Curated snapshot for the hybrid calibration path. Keyed by YYYYMM. Annual means are computed by consumers, never stored as month keys."
+  "notes": "Curated snapshot for the hybrid calibration path. Keyed by YYYYMM. Annual means are computed by consumers, never stored as month keys.",
+  "provenance": {
+    "kind": "published",
+    "verification_status": "verified",
+    "source": "NASA POWER API v2.10.0 (power.larc.nasa.gov), monthly point query",
+    "endpoint": "https://power.larc.nasa.gov/api/temporal/monthly/point",
+    "parameters": [
+      "ALLSKY_SFC_SW_DWN",
+      "CLRSKY_SFC_SW_DWN",
+      "T2M",
+      "RH2M",
+      "WS10M"
+    ],
+    "community": "RE",
+    "year": 2023,
+    "retrieval_note": "Values re-fetched from the live API on 2026-10-06 and checked field by field against this snapshot; all agree to the stored precision.",
+    "units": {
+      "monthly_ghi": "kWh/m^2/day",
+      "clear_sky_ghi": "kWh/m^2/day",
+      "monthly_temp_c": "degC",
+      "monthly_humidity_pct": "%",
+      "monthly_wind_speed_ms": "m/s"
+    },
+    "annual_mean_note": "The API also returns an annual mean under the YYYY13 key (ALLSKY 5.209, CLRSKY 6.457 kWh/m^2/day). That key was removed from this snapshot because it is an annual aggregate, not a thirteenth month; consumers compute their own mean from the twelve monthly keys.",
+    "august_note": "August GHI of 5.74 kWh/m^2/day is the genuine NASA POWER value for 2023-08, sitting between two genuinely lower monsoon months. It is not an error and must not be 'corrected'.",
+    "elevation_note": "elevation_m 540.94 is returned by the API as the point's z coordinate."
+  }
 }

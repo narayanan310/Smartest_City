@@ -72,24 +72,44 @@ def vet_nasa_power_data(data: Dict[str, Any], report: VettingReport) -> None:
 
 
 def vet_lake_environmental_data(data: Dict[str, Any], report: VettingReport) -> None:
-    """Vet authentic Ukkadam Lake (Periyakulam) environmental benchmarks."""
+    """Vet authentic Ukkadam Lake (Periyakulam) environmental benchmarks.
+
+    Bounds are taken from the published 14-point survey, not chosen loosely:
+    a file carrying the previously-fabricated values (COD mean near 94 mg/L,
+    turbidity 24.8 NTU) must fail here.
+    """
     metadata = data.get("site_metadata", {})
     hydro = metadata.get("hydrology", {})
-    params = data.get("water_quality_benchmarks", {}).get("parameters", {})
+    params = data.get("water_quality_benchmarks", {})
 
     area = hydro.get("surface_area_sq_km", 0)
-    report.check(1.0 <= area <= 1.5, "Ukkadam lake surface area conforms to official geography (1.295 km²)", f"{area} km²")
+    report.check(1.0 <= area <= 1.5, "Ukkadam lake surface area conforms to published geography (1.295 km2)", f"{area} km2")
     report.check(hydro.get("mean_depth_m", 0) >= 1.5, "Mean depth physically realistic for urban percolation lake", f"{hydro.get('mean_depth_m')} m")
+    report.check(bool(hydro.get("provenance")), "Lake hydrology carries a provenance block")
 
     do_bench = params.get("dissolved_oxygen_mg_l", {})
     report.check(do_bench.get("cpcb_class_c_minimum") == 4.0, "CPCB Class C standard correctly defined as 4.0 mg/L")
-    report.check(3.0 <= do_bench.get("annual_mean", 0) <= 7.0, "Annual mean DO conforms to recorded limnological surveys", f"{do_bench.get('annual_mean')} mg/L")
+    report.check(3.0 <= do_bench.get("mean", 0) <= 7.0, "Mean DO conforms to published surveys (5.0-6.7 mg/L, n=14)", f"{do_bench.get('mean')} mg/L")
 
     ph_bench = params.get("ph", {})
-    report.check(7.0 <= ph_bench.get("annual_mean", 0) <= 9.0, "Ukkadam water pH in expected alkaline urban eutrophic range (7.0 - 9.0)", f"{ph_bench.get('annual_mean')}")
+    # Published surveys span 7.5-9.4; the 2018-19 survey sits near 9.2.
+    report.check(7.0 <= ph_bench.get("mean", 0) <= 10.0, "Ukkadam pH within the published alkaline span (7.5-9.4)", f"{ph_bench.get('mean')}")
 
     bod_bench = params.get("biochemical_oxygen_demand_bod_mg_l", {})
-    report.check(bod_bench.get("mean", 0) > 10.0, "BOD records high organic load reflecting un-diverted sewage channels", f"{bod_bench.get('mean')} mg/L")
+    report.check(bod_bench.get("mean", 0) > 10.0, "BOD reflects published organic load well above the 3.0 mg/L limit", f"{bod_bench.get('mean')} mg/L")
+
+    cod_bench = params.get("chemical_oxygen_demand_cod_mg_l", {})
+    # Published COD is 242-487 mg/L. A mean below 200 cannot be from that survey.
+    report.check(cod_bench.get("mean", 0) >= 200.0, "COD mean consistent with the published survey (>=200 mg/L)", f"{cod_bench.get('mean')} mg/L")
+    report.check(180.0 <= cod_bench.get("min", 0) <= 400.0, "COD minimum consistent with published range (242-487 mg/L)", f"{cod_bench.get('min')} mg/L")
+
+    turb_bench = params.get("turbidity_ntu", {})
+    report.check(5.0 <= turb_bench.get("mean", 0) <= 20.0, "Turbidity consistent with the published 10-13 NTU band", f"{turb_bench.get('mean')} NTU")
+
+    for name in ("dissolved_oxygen_mg_l", "ph", "biochemical_oxygen_demand_bod_mg_l",
+                 "chemical_oxygen_demand_cod_mg_l", "turbidity_ntu"):
+        report.check(bool(params.get(name, {}).get("provenance")),
+                     f"{name} carries a provenance block")
 
 
 def vet_transit_economics_data(data: Dict[str, Any], report: VettingReport) -> None:
@@ -99,27 +119,37 @@ def vet_transit_economics_data(data: Dict[str, Any], report: VettingReport) -> N
     tariffs = data.get("electricity_tariffs", {})
     carbon = data.get("carbon_emissions", {})
 
-    report.check(len(transit.get("corridors", [])) == 4, "Four authoritative Coimbatore corridors defined")
-    report.check(transit.get("average_daily_km_per_bus") == 220.0, "TNSTC standard daily operating distance set to 220 km/day")
+    report.check(len(transit.get("corridor_archetypes", [])) == 4, "Four Coimbatore corridor archetypes defined")
+    report.check(transit.get("average_daily_km_per_bus") == 220.0, "Daily operating distance set to 220 km/day")
 
     economy = diesel.get("diesel_fuel_economy_km_per_litre", 0)
     price = diesel.get("diesel_price_inr_per_litre", 0)
     implied = diesel.get("implied_diesel_fuel_value_inr_per_kwh", 0)
-    report.check(3.0 <= economy <= 4.5, "Transit bus diesel economy within real fleet range [3.0, 4.5] km/L", f"{economy} km/L")
-    report.check(90.0 <= price <= 110.0, "Coimbatore diesel retail price matches current IOCL rates", f"₹{price}/L")
+    report.check(4.0 <= economy <= 6.0, "Diesel economy within the published TNSTC range (city 5.10, rural 5.57, state avg 5.33 KMPL)", f"{economy} km/L")
+    report.check(90.0 <= price <= 110.0, "Coimbatore diesel retail price plausible for the period", f"Rs{price}/L")
+    report.check(bool(transit.get("provenance")), "Transit operations carry a provenance block")
+    report.check(transit["provenance"].get("verification_status") in ("assumption", "verified", "verified_with_assumptions"),
+                 "Transit provenance states its verification status")
 
     # Analytical verification of implied fuel value per kWh:
-    # 220 km at 3.5 km/L => 62.857 L. Cost = 62.857 * 100.06 = Rs 6289.48.
-    # Daily electric traction = 219 kWh. Implied value = 6289.48 / 219 = Rs 28.719/kWh.
+    # 220 km at 3.5 km/L => 62.857 L. Cost = 62.857 * price. Daily electric
+    # traction = 219 kWh. Implied value = fuel cost / 219.
     expected_implied = (price / economy) / (transit.get("energy_consumption", {}).get("daily_nominal_traction_kwh_per_bus", 219) / 220.0)
     report.check(abs(implied - expected_implied) < 0.2, "Implied diesel value mathematically coherent with baseline mileage and energy", f"Declared: {implied} vs Calc: {expected_implied:.2f}")
 
     tod = tariffs.get("public_ev_charging_tod_tariffs_inr_per_kwh", {})
-    report.check(tod.get("solar_hours_09_00_to_16_00") == 6.50, "TNERC Order 6 solar hour EV tariff verified at ₹6.50/kWh")
-    report.check(tod.get("peak_hours_06_00_to_09_00_and_18_00_to_22_00") == 9.75, "TNERC Order 6 peak hour EV tariff verified at ₹9.75/kWh")
+    # TNERC Suo-motu Order No. 6 of 2023, clause 3.1.7 (HT-V public EV charging,
+    # which explicitly covers battery swapping). Commission-determined charges in
+    # paise/kWh: 600 solar, 900 peak, 750 off-peak.
+    report.check(tod.get("solar_hours_09_00_to_16_00") == 6.00, "TNERC Order 6 of 2023 solar-hour EV tariff is Rs 6.00/kWh (600 paise)", f"{tod.get('solar_hours_09_00_to_16_00')}")
+    report.check(tod.get("peak_hours_06_00_to_09_00_and_18_00_to_22_00") == 9.00, "TNERC Order 6 of 2023 peak-hour EV tariff is Rs 9.00/kWh (900 paise)", f"{tod.get('peak_hours_06_00_to_09_00_and_18_00_to_22_00')}")
+    report.check(tod.get("normal_offpeak_hours_16_00_to_18_00_and_22_00_to_06_00") == 7.50, "TNERC Order 6 of 2023 off-peak EV tariff is Rs 7.50/kWh (750 paise)", f"{tod.get('normal_offpeak_hours_16_00_to_18_00_and_22_00_to_06_00')}")
+    report.check(bool(tariffs.get("provenance")), "Tariff block carries a provenance block")
 
     cea = carbon.get("cea_grid_emission_factors_kg_co2_per_kwh", {})
-    report.check(0.70 <= cea.get("official_2023_24", 0) <= 0.85, "CEA Indian Grid weighted average emission factor within verified range", f"{cea.get('official_2023_24')} kg CO2/kWh")
+    report.check(0.70 <= cea.get("official_2023_24", 0) <= 0.85, "CEA 2023-24 weighted-average grid emission factor in verified range", f"{cea.get('official_2023_24')} kg CO2/kWh")
+    # CEA published series; 0.823 was a previously-fabricated figure for 2022-23.
+    report.check(abs(cea.get("baseline_2022_23", 0) - 0.716) < 1e-9, "CEA 2022-23 baseline is 0.716 kg CO2/kWh, not the earlier 0.823", f"{cea.get('baseline_2022_23')}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -188,7 +218,7 @@ def generate_transit_dispatch_curves(transit_data: Dict[str, Any]) -> List[Dict[
     Uses a bimodal commuter Gaussian model calibrated against TNSTC Coimbatore peak headways.
     """
     curves: List[Dict[str, Any]] = []
-    corridors = transit_data["transit_operations"]["corridors"]
+    corridors = transit_data["transit_operations"]["corridor_archetypes"]
 
     for step in range(48):
         hour = step * 0.5
@@ -269,7 +299,7 @@ def main() -> int:
     # Every summary metric below is computed from the vetted inputs above,
     # never written as a literal.
     ghi_vals = [nasa_data["monthly_ghi"][f"2023{m:02d}"] for m in range(1, 13)]
-    lake_params = lake_data["water_quality_benchmarks"]["parameters"]
+    lake_params = lake_data["water_quality_benchmarks"]
     transit_ops = transit_data["transit_operations"]
     diesel = transit_ops["diesel_counterfactual"]
     tod = transit_data["electricity_tariffs"]["public_ev_charging_tod_tariffs_inr_per_kwh"]

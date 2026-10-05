@@ -1,4 +1,5 @@
 {
+  "_comment": "Ukkadam (Periyakulam) Lake water-quality benchmarks. Every numeric field carries its own provenance block. Values are PUBLISHED measurements, not modelled. The simulation does NOT consume these values: src/models/ecology.py integrates its own mass-conserving budget. This file exists for vetting, display and cross-checking only.",
   "site_metadata": {
     "lake_name": "Ukkadam Lake (Periyakulam)",
     "city": "Coimbatore",
@@ -8,88 +9,150 @@
     "coordinates": {
       "latitude": 10.9835,
       "longitude": 76.9554,
-      "note": "Model reference centre. Agrees with the published lake coordinate within ~215 m; the map fits the polygon, not this point."
+      "provenance": {
+        "kind": "published",
+        "source": "Gelera-Adefuin, M.J. (2019) IJITEE v8(6): Assessment of Water Quality and Parameters Leading to Eutrophication in an Urban Water Body (post-monsoon 2018-19, n=14)",
+        "note": "Study area described as the Coimbatore Anicut channel system; model reference centre."
+      }
     },
     "hydrology": {
       "surface_area_sq_km": 1.295,
-      "surface_area_hectares": 129.5,
       "mean_depth_m": 5.82,
-      "approx_volume_m3": 7537900,
-      "catchment_type": "Noyyal River basin urban wetland system",
-      "regulatory_classification": "CPCB Class C (Freshwater Fish Culture and Wildlife Propagation)",
-      "volume_note": "area x mean depth. A quoted 1.98M m^3 figure in circulation is internally inconsistent with area x depth by ~3.8x and is not used."
+      "published_storage_capacity_mcft": 70,
+      "waterspread_acres": 320,
+      "provenance": {
+        "kind": "published",
+        "source": "Gelera-Adefuin, M.J. (2019) IJITEE v8(6): Assessment of Water Quality and Parameters Leading to Eutrophication in an Urban Water Body (post-monsoon 2018-19, n=14)",
+        "quote": "Ukkadam lake has a water spread area of 1.295 sq. km. and an average depth of 5.82m ... storage capacity of 70 mcft",
+        "note": "Area x mean depth = 7.54 Mm3, inconsistent with 70 mcft (~1.98 Mm3) by ~3.8x. Both published figures retained; the model uses area and depth, and its oxygen budget is areal so it never consumes a volume."
+      }
     }
   },
   "water_quality_benchmarks": {
-    "provenance": {
-      "primary_sources": [
-        "Tamil Nadu Pollution Control Board (TNPCB) - NWMP Monitoring Stations",
-        "Coimbatore City Municipal Corporation (CCMC) Smart City Periyakulam Rejuvenation DPR",
-        "Peer-reviewed environmental studies (Orient. J. Chem., J. Mater. Environ. Sci., Horizon e-Pub)"
-      ],
-      "status": "Compiled secondary benchmarks \u2014 field verification pending",
-      "scope_note": "Water-quality parameters are literature/survey compilations used for vetting and display. They are NOT consumed by the simulation: the ecological model integrates its own mass-conserving budget from first principles (see src/models/ecology.py). pH 8.50 and mean DO 4.49 are survey benchmarks; the model is not fitted to them."
+    "sampling_design": {
+      "study_area": "Ukkadam Lake, Coimbatore, India",
+      "season": "post-monsoon 2018-19",
+      "n_sampling_points": 14,
+      "method": "boat-assisted surface sampling; Winkler titrimetry for DO; 5-day 20C incubation for BOD; potassium dichromate oxidation for COD",
+      "provenance": {
+        "kind": "published",
+        "source": "Gelera-Adefuin, M.J. (2019) IJITEE v8(6): Assessment of Water Quality and Parameters Leading to Eutrophication in an Urban Water Body (post-monsoon 2018-19, n=14)"
+      }
     },
-    "parameters": {
-      "dissolved_oxygen_mg_l": {
-        "annual_mean": 4.49,
-        "summer_range": [
-          3.8,
-          5.8
-        ],
-        "monsoon_range": [
-          4.5,
-          6.2
-        ],
-        "winter_range": [
-          4.9,
-          6.6
-        ],
-        "diurnal_minimum_observed": 3.0,
-        "cpcb_class_c_minimum": 4.0,
-        "critical_fish_kill_threshold": 3.0
+    "dissolved_oxygen_mg_l": {
+      "mean": 5.71,
+      "min": 5.0,
+      "max": 6.7,
+      "n": 14,
+      "secondary_study": {
+        "value": "2.65-6.5 across all seven Coimbatore wetlands post-monsoon",
+        "source": "Monitoring the Pollution Intensity of Wetlands of Coimbatore, Tamil Nadu (Nept Journal)"
       },
-      "ph": {
-        "annual_mean": 8.5,
-        "range": [
-          7.8,
-          8.8
-        ],
-        "seasonal_notes": "Alkaline tendency driven by algal photosynthesis and domestic runoff influx"
+      "cpcb_class_c_minimum": 4.0,
+      "critical_fish_kill_threshold": 3.0,
+      "provenance": {
+        "kind": "published",
+        "source": "Gelera-Adefuin, M.J. (2019) IJITEE v8(6): Assessment of Water Quality and Parameters Leading to Eutrophication in an Urban Water Body (post-monsoon 2018-19, n=14)",
+        "secondary_source": "Monitoring the Pollution Intensity of Wetlands of Coimbatore, Tamil Nadu (Nept Journal)",
+        "note": "CPCB Class C (freshwater fish culture) designates 4.0 mg/L as the minimum. Both studies agree the lake is normally ABOVE 4.0 mg/L in monsoon/post-monsoon; the lower bound is driven by temperature and organic load, not a chronic deficit."
+      }
+    },
+    "ph": {
+      "mean": 9.17,
+      "min": 8.605,
+      "max": 9.41,
+      "n": 14,
+      "secondary_study": {
+        "value": "7.49-7.84 (pre/post-monsoon, incl. March 2009)",
+        "source": "Monitoring the Pollution Intensity of Wetlands of Coimbatore, Tamil Nadu (Nept Journal)"
       },
-      "biochemical_oxygen_demand_bod_mg_l": {
-        "mean": 46.42,
-        "range": [
-          22.0,
-          92.0
-        ],
-        "standard_limit_cpcb": 3.0,
-        "assessment": "High organic load due to upstream inlet channels"
+      "provenance": {
+        "kind": "published",
+        "source": "Gelera-Adefuin, M.J. (2019) IJITEE v8(6): Assessment of Water Quality and Parameters Leading to Eutrophication in an Urban Water Body (post-monsoon 2018-19, n=14)",
+        "secondary_source": "Monitoring the Pollution Intensity of Wetlands of Coimbatore, Tamil Nadu (Nept Journal)",
+        "note": "Strongly alkaline. The 2018-19 survey (8.6-9.4) is markedly higher than earlier work (7.5-7.8); the secondary study attributes the rise to increased pollution. Treat 7.5-9.4 as the defensible span."
+      }
+    },
+    "biochemical_oxygen_demand_bod_mg_l": {
+      "mean": 35.71,
+      "min": 24,
+      "max": 48,
+      "n": 14,
+      "secondary_study": {
+        "value": 9.8,
+        "source": "Monitoring the Pollution Intensity of Wetlands of Coimbatore, Tamil Nadu (Nept Journal)"
       },
-      "chemical_oxygen_demand_cod_mg_l": {
-        "mean": 94.25,
-        "range": [
-          45.0,
-          160.0
-        ]
-      },
-      "turbidity_ntu": {
-        "annual_mean": 24.8,
-        "summer_mean": 28.5,
-        "monsoon_mean": 35.2,
-        "post_monsoon_mean": 18.0
-      },
-      "water_temperature_celsius": {
-        "annual_mean": 27.2,
-        "summer_mean": 30.5,
-        "monsoon_mean": 26.8,
-        "winter_mean": 24.5
+      "cpcb_standard_limit": 3.0,
+      "provenance": {
+        "kind": "published",
+        "source": "Gelera-Adefuin, M.J. (2019) IJITEE v8(6): Assessment of Water Quality and Parameters Leading to Eutrophication in an Urban Water Body (post-monsoon 2018-19, n=14)",
+        "secondary_source": "Monitoring the Pollution Intensity of Wetlands of Coimbatore, Tamil Nadu (Nept Journal)",
+        "assessment": "Organic load far above the CPCB 3.0 mg/L limit in the 2018-19 survey; the older secondary study is an order of magnitude lower."
+      }
+    },
+    "chemical_oxygen_demand_cod_mg_l": {
+      "mean": 390.43,
+      "min": 242,
+      "max": 487,
+      "n": 14,
+      "provenance": {
+        "kind": "published",
+        "source": "Gelera-Adefuin, M.J. (2019) IJITEE v8(6): Assessment of Water Quality and Parameters Leading to Eutrophication in an Urban Water Body (post-monsoon 2018-19, n=14)",
+        "note": "Published range 242-487 mg/L, roughly 2-3x the commonly cited CPCB 250 mg/L desirable limit. An earlier draft of this file carried a mean near 94 mg/L; that figure is NOT supported by the published survey and has been removed."
+      }
+    },
+    "turbidity_ntu": {
+      "mean": 11.69,
+      "min": 10.11,
+      "max": 12.84,
+      "n": 14,
+      "provenance": {
+        "kind": "published",
+        "source": "Gelera-Adefuin, M.J. (2019) IJITEE v8(6): Assessment of Water Quality and Parameters Leading to Eutrophication in an Urban Water Body (post-monsoon 2018-19, n=14)",
+        "note": "10-13 NTU band. Secondary literature reports higher values in monsoon owing to Noyyal river particulate input."
+      }
+    },
+    "total_dissolved_solids_mg_l": {
+      "mean": 655.85,
+      "min": 321.9,
+      "max": 862.4,
+      "n": 14,
+      "provenance": {
+        "kind": "published",
+        "source": "Gelera-Adefuin, M.J. (2019) IJITEE v8(6): Assessment of Water Quality and Parameters Leading to Eutrophication in an Urban Water Body (post-monsoon 2018-19, n=14)",
+        "note": "Far above the 500 mg/L BIS drinking-water limit."
+      }
+    },
+    "total_alkalinity_mg_l": {
+      "mean": 580.64,
+      "min": 450,
+      "max": 690,
+      "n": 14,
+      "provenance": {
+        "kind": "published",
+        "source": "Gelera-Adefuin, M.J. (2019) IJITEE v8(6): Assessment of Water Quality and Parameters Leading to Eutrophication in an Urban Water Body (post-monsoon 2018-19, n=14)"
+      }
+    },
+    "chloride_mg_l": {
+      "mean": 742.61,
+      "min": 479.2,
+      "max": 898.4,
+      "n": 14,
+      "provenance": {
+        "kind": "published",
+        "source": "Gelera-Adefuin, M.J. (2019) IJITEE v8(6): Assessment of Water Quality and Parameters Leading to Eutrophication in an Urban Water Body (post-monsoon 2018-19, n=14)",
+        "secondary_source": "Monitoring the Pollution Intensity of Wetlands of Coimbatore, Tamil Nadu (Nept Journal)",
+        "note": "Attributed in the literature to bleaching-industry effluent discharge."
       }
     }
   },
   "floating_solar_ecological_constraints": {
     "statutory_coverage_cap_pct": 15.0,
-    "statutory_authority": "Ministry of New and Renewable Energy (MNRE) / TNPCB Environmental Guidelines",
-    "rationale": "Prevents photic zone extinction, preserves light penetration for phytoplankton, limits severe dissolved oxygen deficits below 4.0 mg/L"
+    "statutory_authority": "MNRE / TNPCB environmental guidelines",
+    "rationale": "Prevents photic-zone extinction, preserves light penetration for phytoplankton, and limits dissolved-oxygen deficits below the CPCB Class C minimum of 4.0 mg/L.",
+    "provenance": {
+      "kind": "project_policy",
+      "note": "Policy cap adopted by this project; the 4.0 mg/L limit itself is the CPCB Class C standard recorded above."
+    }
   }
 }

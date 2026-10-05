@@ -90,22 +90,61 @@ EXTRA_ROUTES: Dict[str, dict] = {
             "Saravanampatti Junction",
             "CHIL SEZ IT Park",
         ],
-        "stop_waypoint_indices": [0, 5, 7, 8, 11, 13],
+        "stop_waypoint_indices": [0, 20, 28, 32, 44, 52],
         "waypoints": [
-            (11.0163, 76.9693),
-            (11.0185, 76.9712),
-            (11.0210, 76.9730),
-            (11.0265, 76.9750),
-            (11.0320, 76.9770),
-            (11.0390, 76.9790),
-            (11.0450, 76.9815),
-            (11.0510, 76.9845),
-            (11.0580, 76.9880),
-            (11.0660, 76.9910),
-            (11.0740, 76.9935),
-            (11.0790, 76.9950),
-            (11.0820, 76.9965),
-            (11.0850, 76.9980),
+            (11.01617, 76.96929),
+            (11.01745, 76.96881),
+            (11.0186, 76.96971),
+            (11.02014, 76.97047),
+            (11.02145, 76.9713),
+            (11.02284, 76.97189),
+            (11.02434, 76.97253),
+            (11.02542, 76.9734),
+            (11.0271, 76.97397),
+            (11.02843, 76.9747),
+            (11.0299, 76.97535),
+            (11.03114, 76.9762),
+            (11.03227, 76.97745),
+            (11.03344, 76.97832),
+            (11.03524, 76.97821),
+            (11.03665, 76.97861),
+            (11.03799, 76.97914),
+            (11.03916, 76.98032),
+            (11.04011, 76.98151),
+            (11.04112, 76.9827),
+            (11.04225, 76.9837),
+            (11.04347, 76.98481),
+            (11.04496, 76.98567),
+            (11.04625, 76.98701),
+            (11.04711, 76.9883),
+            (11.04845, 76.98916),
+            (11.04971, 76.98995),
+            (11.0509, 76.99098),
+            (11.05165, 76.99256),
+            (11.05265, 76.99367),
+            (11.05388, 76.9943),
+            (11.0551, 76.99494),
+            (11.05653, 76.99562),
+            (11.05823, 76.99658),
+            (11.05951, 76.9973),
+            (11.06085, 76.99797),
+            (11.06192, 76.99906),
+            (11.06363, 77.00004),
+            (11.06502, 77.00049),
+            (11.06646, 77.00117),
+            (11.06781, 77.00183),
+            (11.06936, 77.00221),
+            (11.07096, 77.0021),
+            (11.07336, 77.00203),
+            (11.07481, 77.00203),
+            (11.0765, 77.00237),
+            (11.07848, 77.00357),
+            (11.07948, 77.00257),
+            (11.07964, 77.00085),
+            (11.07971, 76.99931),
+            (11.08003, 76.99746),
+            (11.08036, 76.996),
+            (11.08056, 76.99501),
         ],
     },
     "Route 70": {
@@ -119,19 +158,44 @@ EXTRA_ROUTES: Dict[str, dict] = {
             "Lawley Road",
             "Vadavalli Bus Stand",
         ],
-        "stop_waypoint_indices": [0, 3, 5, 6, 10],
+        "stop_waypoint_indices": [0, 10, 18, 21, 35],
         "waypoints": [
-            (10.9968, 76.9556),
-            (11.0010, 76.9520),
-            (11.0045, 76.9490),
-            (11.0080, 76.9475),
-            (11.0115, 76.9430),
-            (11.0135, 76.9380),
-            (11.0145, 76.9320),
-            (11.0165, 76.9260),
-            (11.0190, 76.9180),
-            (11.0220, 76.9110),
-            (11.0250, 76.9050),
+            (10.99676, 76.95532),
+            (10.99721, 76.95692),
+            (10.99848, 76.95733),
+            (11.0002, 76.95693),
+            (11.00133, 76.95661),
+            (11.00303, 76.9561),
+            (11.00422, 76.95592),
+            (11.00561, 76.95573),
+            (11.00674, 76.95561),
+            (11.0082, 76.95542),
+            (11.00976, 76.95511),
+            (11.01087, 76.955),
+            (11.01053, 76.95262),
+            (11.01012, 76.95049),
+            (11.00983, 76.94842),
+            (11.00959, 76.94687),
+            (11.00921, 76.94454),
+            (11.01035, 76.94386),
+            (11.01148, 76.94331),
+            (11.01257, 76.94279),
+            (11.01353, 76.94226),
+            (11.01358, 76.94072),
+            (11.01352, 76.93896),
+            (11.01348, 76.9372),
+            (11.01343, 76.93551),
+            (11.01339, 76.93438),
+            (11.01335, 76.93209),
+            (11.01333, 76.9309),
+            (11.0134, 76.92969),
+            (11.01384, 76.92851),
+            (11.01441, 76.92729),
+            (11.0151, 76.92612),
+            (11.01585, 76.92521),
+            (11.01513, 76.92621),
+            (11.0145, 76.92729),
+            (11.015, 76.92729),
         ],
     },
 }
@@ -685,11 +749,19 @@ class Config:
     # ─────────────────────────────────────────────
     # ECONOMICS & TARIFFS
     # ─────────────────────────────────────────────
-    GRID_TARIFF_PER_KWH: float = 8.0           # ₹/kWh (TANGEDCO commercial rate)
+    #: Flat commercial rate used by SIMULATED mode. TNERC Suo-motu Order No. 6 of 2023,
+    #: HT-III commercial, FY 2023-24 = Rs 8.70/kWh (Rs 9.10 from July 2024 at CPI).
+    #: HYBRID mode ignores this and applies the EV-charging ToD tariff instead.
+    GRID_TARIFF_PER_KWH: float = 8.70
     OA_SURCHARGE_PER_KWH: float = 0.54         # ₹/kWh avoided via captive model
-    DIESEL_COST_PER_LITRE: float = 100.0       # ₹/L
-    DIESEL_KM_PER_LITRE: float = 3.5           # TNSTC diesel bus fuel economy
-    DIESEL_KM_PER_BUS_PER_DAY: float = 220.0   # TNSTC operational estimate
+    DIESEL_COST_PER_LITRE: float = 100.0       # ₹/L — approximate retail figure for the period
+    #: TNSTC Coimbatore city-operation fuel economy, km/L. Published: ~5.10 KMPL in city
+    #: operation (The Times of India, 13 Apr 2022, quoting the TNSTC Coimbatore division);
+    #: rural 5.57 KMPL; the corporation's FY2021-22 state average was 5.33 KMPL. The earlier
+    #: 3.5 km/L was a generic fleet figure that overstated baseline diesel burn by ~46%,
+    #: inflating the displaced-fuel benefit term.
+    DIESEL_KM_PER_LITRE: float = 5.1
+    DIESEL_KM_PER_BUS_PER_DAY: float = 220.0   # plausible city-bus duty cycle; assumption
     CO2_GRID_KG_PER_KWH: float = 0.82          # kg CO₂/kWh (CEA India baseline)
     CO2_DIESEL_KG_PER_LITRE: float = 2.68      # kg CO₂/litre diesel
 
@@ -959,12 +1031,13 @@ class Config:
     def tod_tariff_per_kwh(self, hour: float) -> float:
         """Time-of-Day tariff per kWh.
 
-        In 'hybrid' mode: implements TNERC Order No. 6 Public EV Charging Time-of-Day rate,
-        read from the curated transit snapshot (``data/raw/``) with the table below as
-        fallback when the file is absent:
-          - 09:00 - 16:00: Rs 6.50 (Solar hours incentive)
-          - 06:00 - 09:00 & 18:00 - 22:00: Rs 9.75 (Peak hours)
-          - 16:00 - 18:00 & 22:00 - 06:00: Rs 8.10 (Normal / Off-peak)
+        In 'hybrid' mode: implements the TNERC Suo-motu Order No. 6 of 2023 (clause
+        3.1.7) High Tension Tariff V for public EV charging stations, which explicitly
+        covers battery-swapping stations. Rates are read from the curated transit
+        snapshot (``data/raw/``) with these published values as fallback:
+          - 09:00 - 16:00: Rs 6.00/kWh (600 paise, solar hours)
+          - 06:00 - 09:00 & 18:00 - 22:00: Rs 9.00/kWh (900 paise, peak)
+          - 16:00 - 18:00 & 22:00 - 06:00: Rs 7.50/kWh (750 paise, off-peak)
         In 'simulated' mode: returns standard base GRID_TARIFF_PER_KWH (Rs 8.00).
         """
         if self.DATA_MODE == "hybrid":

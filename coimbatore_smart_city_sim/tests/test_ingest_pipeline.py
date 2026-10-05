@@ -61,7 +61,7 @@ def test_vetting_accepts_committed_snapshots(nasa, lake, transit):
     vet_nasa_power_data(nasa, report)
     vet_lake_environmental_data(lake, report)
     vet_transit_economics_data(transit, report)
-    assert len(report.checks) == 78
+    assert len(report.checks) == 92
     assert all(ok for _, ok, _ in report.checks)
 
 
@@ -98,18 +98,18 @@ def test_lake_vetting_rejects_bad_inputs(lake):
     bad["site_metadata"]["hydrology"]["surface_area_sq_km"] = 9.9
     _rejects(vet_lake_environmental_data, bad)
     bad = copy.deepcopy(lake)
-    bad["water_quality_benchmarks"]["parameters"]["dissolved_oxygen_mg_l"][
+    bad["water_quality_benchmarks"]["dissolved_oxygen_mg_l"][
         "cpcb_class_c_minimum"] = 2.0
     _rejects(vet_lake_environmental_data, bad)
     bad = copy.deepcopy(lake)
-    bad["water_quality_benchmarks"]["parameters"][
+    bad["water_quality_benchmarks"][
         "biochemical_oxygen_demand_bod_mg_l"]["mean"] = 1.0
     _rejects(vet_lake_environmental_data, bad)
 
 
 def test_transit_vetting_rejects_bad_inputs(transit):
     bad = copy.deepcopy(transit)
-    bad["transit_operations"]["corridors"] = bad["transit_operations"]["corridors"][:2]
+    bad["transit_operations"]["corridor_archetypes"] = bad["transit_operations"]["corridor_archetypes"][:2]
     _rejects(vet_transit_economics_data, bad)
     bad = copy.deepcopy(transit)
     bad["transit_operations"]["diesel_counterfactual"][
@@ -146,7 +146,7 @@ def test_solar_profile_shape(nasa):
 
 def test_dispatch_curve_shape(transit):
     curves = generate_transit_dispatch_curves(transit)
-    corridors = transit["transit_operations"]["corridors"]
+    corridors = transit["transit_operations"]["corridor_archetypes"]
     assert len(curves) == 48 * len(corridors)
     night = [c for c in curves if c["hour"] < 6.0 or c["hour"] > 22.0]
     assert all(c["active_fleet_ratio"] == 0.0 for c in night)

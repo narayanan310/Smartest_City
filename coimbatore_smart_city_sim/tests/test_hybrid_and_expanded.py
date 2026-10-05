@@ -46,21 +46,21 @@ def test_hybrid_mode_tod_tariffs_and_cea_emission_factor():
     assert cfg.DATA_MODE == "hybrid"
     assert cfg.grid_emission_factor() == pytest.approx(0.727)
 
-    # Solar incentive hours: 09:00 - 16:00 (Rs 6.50/kWh)
-    assert cfg.tod_tariff_per_kwh(9.0) == pytest.approx(6.50)
-    assert cfg.tod_tariff_per_kwh(12.5) == pytest.approx(6.50)
-    assert cfg.tod_tariff_per_kwh(15.5) == pytest.approx(6.50)
+    # Solar incentive hours: 09:00 - 16:00 (Rs 6.00/kWh)
+    assert cfg.tod_tariff_per_kwh(9.0) == pytest.approx(6.00)
+    assert cfg.tod_tariff_per_kwh(12.5) == pytest.approx(6.00)
+    assert cfg.tod_tariff_per_kwh(15.5) == pytest.approx(6.00)
 
-    # Morning & evening peak hours: 06:00 - 09:00, 18:00 - 22:00 (Rs 9.75/kWh)
-    assert cfg.tod_tariff_per_kwh(6.5) == pytest.approx(9.75)
-    assert cfg.tod_tariff_per_kwh(8.5) == pytest.approx(9.75)
-    assert cfg.tod_tariff_per_kwh(18.5) == pytest.approx(9.75)
-    assert cfg.tod_tariff_per_kwh(20.0) == pytest.approx(9.75)
+    # Morning & evening peak hours: 06:00 - 09:00, 18:00 - 22:00 (Rs 9.00/kWh)
+    assert cfg.tod_tariff_per_kwh(6.5) == pytest.approx(9.00)
+    assert cfg.tod_tariff_per_kwh(8.5) == pytest.approx(9.00)
+    assert cfg.tod_tariff_per_kwh(18.5) == pytest.approx(9.00)
+    assert cfg.tod_tariff_per_kwh(20.0) == pytest.approx(9.00)
 
-    # Normal hours: off-peak & afternoon (Rs 8.10/kWh)
-    assert cfg.tod_tariff_per_kwh(2.0) == pytest.approx(8.10)
-    assert cfg.tod_tariff_per_kwh(17.0) == pytest.approx(8.10)
-    assert cfg.tod_tariff_per_kwh(22.0) == pytest.approx(8.10)
+    # Normal hours: off-peak & afternoon (Rs 7.50/kWh)
+    assert cfg.tod_tariff_per_kwh(2.0) == pytest.approx(7.50)
+    assert cfg.tod_tariff_per_kwh(17.0) == pytest.approx(7.50)
+    assert cfg.tod_tariff_per_kwh(22.0) == pytest.approx(7.50)
 
 
 def test_dynamic_mode_setters():
@@ -264,7 +264,7 @@ def test_clean_processed_datasets_exist_and_are_valid():
     assert "metrics_summary" in data
     summary = data["metrics_summary"]
     assert summary["cea_carbon_emission_factor_kg_per_kwh"] == 0.727
-    assert summary["ev_charging_tariff_solar_hours_inr"] == 6.5
+    assert summary["ev_charging_tariff_solar_hours_inr"] == 6.00
     # Honest rounding of the 12-month mean (62.59 / 12 = 5.2158), computed by
     # the pipeline from the vetted inputs, never written as a literal.
     assert summary["annual_average_ghi_kwh_m2_day"] == 5.22

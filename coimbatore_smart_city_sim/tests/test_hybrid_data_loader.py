@@ -49,8 +49,8 @@ def test_missing_files_fall_back_to_baseline(tmp_path, monkeypatch):
     monkeypatch.setattr(hybrid_data, "RAW_DIR", tmp_path)
     scale, temp = hybrid_solar_calibration("summer")
     assert (scale, temp) == (1.0, 32.5)
-    assert hybrid_tariff_table() == {"solar_hours": 6.50, "peak_hours": 9.75,
-                                     "normal_hours": 8.10}
+    assert hybrid_tariff_table() == {"solar_hours": 6.00, "peak_hours": 9.00,
+                                     "normal_hours": 7.50}
     assert hybrid_emission_factor() == pytest.approx(0.727)
     assert raw_snapshots_available() == {
         hybrid_data.NASA_SNAPSHOT: False,
@@ -66,7 +66,7 @@ def test_corrupt_files_fall_back_to_baseline(tmp_path, monkeypatch):
     monkeypatch.setattr(hybrid_data, "RAW_DIR", tmp_path)
     scale, temp = hybrid_solar_calibration("monsoon")
     assert (scale, temp) == (1.0, 29.0)
-    assert hybrid_tariff_table()["peak_hours"] == pytest.approx(9.75)
+    assert hybrid_tariff_table()["peak_hours"] == pytest.approx(9.00)
 
 
 def test_absurd_values_fall_back_to_baseline(tmp_path, monkeypatch):
@@ -76,14 +76,14 @@ def test_absurd_values_fall_back_to_baseline(tmp_path, monkeypatch):
     transit = {"electricity_tariffs": {
         "public_ev_charging_tod_tariffs_inr_per_kwh": {
             "solar_hours_09_00_to_16_00": 600.0,
-            "peak_hours_06_00_to_09_00_and_18_00_to_22_00": 9.75,
-            "normal_offpeak_hours_16_00_to_18_00_and_22_00_to_06_00": 8.10}},
+            "peak_hours_06_00_to_09_00_and_18_00_to_22_00": 9.00,
+            "normal_offpeak_hours_16_00_to_18_00_and_22_00_to_06_00": 7.50}},
         "carbon_emissions": {"cea_grid_emission_factors_kg_co2_per_kwh": {
             "official_2023_24": 99.0}}}
     (tmp_path / hybrid_data.TRANSIT_SNAPSHOT).write_text(json.dumps(transit))
     monkeypatch.setattr(hybrid_data, "RAW_DIR", tmp_path)
     assert hybrid_solar_calibration("summer") == (1.0, 32.5)
-    assert hybrid_tariff_table()["solar_hours"] == pytest.approx(6.50)
+    assert hybrid_tariff_table()["solar_hours"] == pytest.approx(6.00)
     assert hybrid_emission_factor() == pytest.approx(0.727)
 
 

@@ -26,16 +26,16 @@ def _run(data_mode: str, network_mode: str = "standard", **kwargs):
 
 def test_tod_tariff_window_boundaries():
     cfg = Config(data_mode="hybrid")
-    assert cfg.tod_tariff_per_kwh(6.0) == pytest.approx(9.75)
-    assert cfg.tod_tariff_per_kwh(9.0) == pytest.approx(6.50)
-    assert cfg.tod_tariff_per_kwh(15.999) == pytest.approx(6.50)
-    assert cfg.tod_tariff_per_kwh(16.0) == pytest.approx(8.10)
-    assert cfg.tod_tariff_per_kwh(18.0) == pytest.approx(9.75)
-    assert cfg.tod_tariff_per_kwh(21.999) == pytest.approx(9.75)
-    assert cfg.tod_tariff_per_kwh(22.0) == pytest.approx(8.10)
-    assert cfg.tod_tariff_per_kwh(0.0) == pytest.approx(8.10)
-    assert cfg.tod_tariff_per_kwh(23.5) == pytest.approx(8.10)
-    assert cfg.tod_tariff_per_kwh(25.0) == pytest.approx(8.10)  # wraps to 01:00
+    assert cfg.tod_tariff_per_kwh(6.0) == pytest.approx(9.00)
+    assert cfg.tod_tariff_per_kwh(9.0) == pytest.approx(6.00)
+    assert cfg.tod_tariff_per_kwh(15.999) == pytest.approx(6.00)
+    assert cfg.tod_tariff_per_kwh(16.0) == pytest.approx(7.50)
+    assert cfg.tod_tariff_per_kwh(18.0) == pytest.approx(9.00)
+    assert cfg.tod_tariff_per_kwh(21.999) == pytest.approx(9.00)
+    assert cfg.tod_tariff_per_kwh(22.0) == pytest.approx(7.50)
+    assert cfg.tod_tariff_per_kwh(0.0) == pytest.approx(7.50)
+    assert cfg.tod_tariff_per_kwh(23.5) == pytest.approx(7.50)
+    assert cfg.tod_tariff_per_kwh(25.0) == pytest.approx(7.50)  # wraps to 01:00
 
 
 def test_hybrid_annual_generation_reflects_calibration():
@@ -67,9 +67,9 @@ def test_annual_savings_equals_revenue_accounting():
         assert annual["annual_savings_inr_cr"] == pytest.approx(
             round(direct_kwh * blended / 1e7, 2), abs=0.02)
         if mode == "simulated":
-            assert blended == pytest.approx(8.0 + 0.54)
+            assert blended == pytest.approx(8.70 + 0.54)
         else:
-            assert 6.50 + 0.54 <= blended <= 9.75 + 0.54
+            assert 6.00 + 0.54 <= blended <= 9.00 + 0.54
 
 
 def test_daily_cost_matches_step_revenue():

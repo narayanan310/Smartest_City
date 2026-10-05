@@ -2287,3 +2287,56 @@ All were remediated and re-verified the same day:
 **Correction to §13.2:** hand-counting gave "39 executed checks"; `grep -c`
 on a live run confirms **40**. The docs' "40 checks" was correct; the audit
 doc's "24 physical invariants" remains unexplained.
+
+---
+
+## Addendum 2 — data authenticity remediation and two retractions (2026-10-06)
+
+A follow-up review of the raw data snapshots found that most of the
+"authentic" figures were **fabricated**. Verification against live sources:
+
+**Verified genuine:** the NASA POWER snapshot (re-fetched from the API; every
+monthly GHI, clear-sky GHI, T2M, RH2M, WS10M value and the 540.94 m elevation
+match exactly).
+
+**Fabricated and now corrected:**
+
+| Field | Was | Now | Verified against |
+|---|---|---|---|
+| EV ToD solar/peak/off-peak | 6.50 / 9.75 / 8.10 | **6.00 / 9.00 / 7.50** | TNERC Suo-motu Order No. 6 of 2023, cl. 3.1.7 (600/900/750 paise) |
+| CEA 2022-23 | 0.823 | **0.716** | CEA CO2 Baseline Database series |
+| Lake COD mean | 94.25 | **390.43** (242–487) | Gelera-Adefuin 2019, IJITEE v8(6), n=14 |
+| Lake turbidity mean | 24.8 | **11.69** (10.11–12.84) | same survey |
+| Lake pH mean | 8.50 | **9.17** (8.605–9.410) | same survey |
+| Diesel economy | 3.5 km/L | **5.10 km/L** | TNSTC Coimbatore city mileage, ToI 13 Apr 2022 |
+| Commercial tariff | ₹8.00 | **₹8.70** | TNERC HT-III commercial FY2023-24 |
+| Route 45 geometry | 14 pts, 0.18 km off chord | **53 OSRM pts, 1.20 km off chord** | router.project-osrm.org |
+| Route 70 geometry | 11 hand-drawn pts | **36 OSRM pts** | router.project-osrm.org |
+
+TNSTC figures now also captured: fleet 2,559 buses (31.10.2025), 10.81 lakh km/day,
+rural 5.57 KMPL, and the KfW-funded electric-bus programme.
+
+### Two corrections to my own earlier findings
+
+1. **§13-era claim that the NASA `202313` key was a bogus "13th month" was
+   wrong.** `YYYY13` is NASA's **annual mean** key (5.209 kWh/m²/day). The value
+   the other draft used for `annual_average_ghi` was correct; the 5.22 I
+   substituted is a simple unweighted mean of the twelve months. Both are
+   defensible; the key is now dropped and the mean computed from the twelve.
+2. **The "August GHI 5.74 breaks the monsoon shape" finding was wrong.** That
+   value is genuine NASA POWER data for 2023-08, sitting between two genuinely
+   wet months. I flagged authentic satellite data as an anomaly. `tests/
+   test_data_authenticity.py` now pins it so it cannot be "corrected" again.
+
+### Provenance transparency
+
+`src/services/hybrid_data.py::data_provenance_summary()` classifies every
+model input as authentic / generated / assumption, and the sidebar renders the
+table behind a **Show data provenance** checkbox. The data-mode radio is now
+labelled 🧮 FABRICATED vs 📡 AUTHENTIC so the toggle's meaning is unambiguous.
+
+### Result
+
+412 tests (30 new authenticity guards), ruff clean, validate 40/40, sweep green,
+probe 0 failures, `verify_all.sh` 8/8. Corrected economics: simulated annual
+saving ₹12.26 Cr; hybrid ₹9.52 Cr (was ₹10.25 Cr on the fabricated tariff).
