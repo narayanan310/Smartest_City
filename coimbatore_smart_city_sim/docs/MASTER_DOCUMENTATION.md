@@ -81,7 +81,7 @@ src/algorithms/scheduler.py Fleet construction, traction energy, swap scheduling
 src/visualization/map.py    Self-contained Leaflet component
 src/services/nasa_power.py  Optional irradiance cross-check
 scripts/validate_results.py Validation gate, 40 invariant checks
-tests/                      342 tests
+tests/                      383 tests
 ```
 
 ## 4. Simulation engine
@@ -310,7 +310,7 @@ Every derived computation is a pure function of the scenario tuple and is wrappe
 
 ## 18. Validation results
 
-40 invariant checks in `scripts/validate_results.py`, all passing, plus 342 tests. See
+40 invariant checks in `scripts/validate_results.py`, all passing, plus 383 tests. See
 `VALIDATION.md`.
 
 ## 19. Known limitations
@@ -465,7 +465,7 @@ implemented, independent of original intentions.
 
 ## 9. Software hygiene
 
-- **[IMPLEMENTED]** 342 automated tests covering determinism, conservation, SOC bounds,
+- **[IMPLEMENTED]** 383 automated tests covering determinism, conservation, SOC bounds,
   route allocation, inventory accounting, swap tiers, solar physics, oxygen monotonicity
   and stationarity.
 - **[IMPLEMENTED]** A validation script with 24 physical invariants that exits non-zero on
@@ -484,7 +484,7 @@ implemented, independent of original intentions.
 
 | Check | Result |
 |---|---|
-| `python -m pytest -q` | 342 passed |
+| `python -m pytest -q` | 383 passed |
 | `python scripts/validate_results.py` | all checks passed, exit 0 |
 | `python -m src.simulation.engine` | clean |
 | Headless `streamlit run` | serves 200, no runtime errors or deprecation warnings |
@@ -1019,7 +1019,7 @@ agree to within 0.05 mg/L.
 
 ```bash
 python scripts/validate_results.py   # exits 1 if any check fails
-python -m pytest -q                  # 342 tests
+python -m pytest -q                  # 383 tests
 python -m src.simulation.engine      # standalone self-check
 ```
 
@@ -1178,7 +1178,7 @@ configuration and seed it reproduces every number exactly.
 failure: energy balance closure at every step, traction demand equal to the energy the
 fleet actually drew, pack inventory conservation, charger-bay limits, no stranded bus,
 solar-funded swaps confined to the surplus window, and carbon credited only on
-self-consumed energy. There are also 342 unit and integration tests.
+self-consumed energy. There are also 383 unit and integration tests.
 
 **Q: Do you use a mapping API?**
 Only OpenStreetMap raster tiles, fetched by the browser. Corridor geometry is embedded

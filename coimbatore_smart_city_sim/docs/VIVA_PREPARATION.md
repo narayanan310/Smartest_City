@@ -11,7 +11,7 @@ configuration and seed it reproduces every number exactly.
 failure: energy balance closure at every step, traction demand equal to the energy the
 fleet actually drew, pack inventory conservation, charger-bay limits, no stranded bus,
 solar-funded swaps confined to the surplus window, and carbon credited only on
-self-consumed energy. There are also 342 unit and integration tests.
+self-consumed energy. There are also 383 unit and integration tests.
 
 **Q: Do you use a mapping API?**
 Only OpenStreetMap raster tiles, fetched by the browser. Corridor geometry is embedded

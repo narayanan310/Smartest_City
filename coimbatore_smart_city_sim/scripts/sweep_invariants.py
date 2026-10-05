@@ -228,6 +228,10 @@ for path in _scannable_sources():
         elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
             external.add(node.module.split(".")[0])
 external = {m for m in external if m not in stdlib and m not in {"src", "tests", "conftest"}}
+# First-party script modules (scripts/ is first-party per the isort config)
+# are project code, not third-party dependencies.
+first_party_scripts = {p.stem for p in (ROOT / "scripts").glob("*.py")}
+external -= first_party_scripts
 runtime = {"streamlit", "pandas", "plotly", "requests"}
 def declared_in(name):
     text = (ROOT / name).read_text()

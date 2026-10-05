@@ -57,7 +57,7 @@ src/algorithms/scheduler.py Fleet construction, traction energy, swap scheduling
 src/visualization/map.py    Self-contained Leaflet component
 src/services/nasa_power.py  Optional irradiance cross-check
 scripts/validate_results.py Validation gate, 40 invariant checks
-tests/                      342 tests
+tests/                      383 tests
 ```
 
 ## 4. Simulation engine
@@ -286,7 +286,7 @@ Every derived computation is a pure function of the scenario tuple and is wrappe
 
 ## 18. Validation results
 
-40 invariant checks in `scripts/validate_results.py`, all passing, plus 342 tests. See
+40 invariant checks in `scripts/validate_results.py`, all passing, plus 383 tests. See
 `VALIDATION.md`.
 
 ## 19. Known limitations

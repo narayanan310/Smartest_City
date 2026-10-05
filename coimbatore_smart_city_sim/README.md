@@ -28,6 +28,13 @@ The 15% coverage case is the ecological policy cap. The 20% option is shown as a
 deliberately non-compliant comparison, and an optional stress range reaches the
 mechanical-aeration mitigation path.
 
+Two scenario axes extend the baseline: **data mode** (`simulated` vs `hybrid`,
+where the NASA monthly deviation, TNERC ToD tariff and CEA 0.727 factor are
+read live from `data/raw/`) and **network mode** (`standard` 4 corridors /
+4 hubs vs `expanded` 6 corridors / 6 hubs). See
+[Hybrid data modes](docs/HYBRID_DATA_MODES.md); the dashboard opens on
+simulated/expanded.
+
 ---
 
 ## Quick start
@@ -49,7 +56,7 @@ the dashboard runs fully offline.
 
 ```bash
 python scripts/validate_results.py   # model run + 40 invariant checks; exit 1 on failure
-python -m pytest -q                  # 342 tests
+python -m pytest -q                  # 383 tests
 python -m src.simulation.engine      # standalone 24-hour and 365-day self-check
 ```
 
@@ -136,9 +143,11 @@ coimbatore_smart_city_sim/
 │   ├── algorithms/solar.py        # PV profile, cloud and cell-temperature modifiers
 │   ├── algorithms/scheduler.py    # Fleet creation, traction energy, swap scheduling
 │   ├── visualization/map.py       # Self-contained Leaflet map component
-│   └── services/nasa_power.py     # Optional irradiance cross-check (cached)
+│   ├── services/nasa_power.py     # Optional irradiance cross-check (cached)
+│   └── services/hybrid_data.py    # Runtime bridge: curated data files into the model
 ├── scripts/validate_results.py    # Command-line validation gate (40 checks)
-├── tests/                         # 342 tests
+├── scripts/ingest_and_vet_data.py # Data vetting pipeline (78 checks, 5 artefacts)
+├── tests/                         # 383 tests
 └── docs/                          # Design notes and presentation material
 ```
 
@@ -176,6 +185,7 @@ citing any number from the dashboard.**
 - [Simulation model](docs/SIMULATION_MODEL.md)
 - [Data sources](docs/DATA_SOURCES.md)
 - [Assumptions and limitations](docs/ASSUMPTIONS_AND_LIMITATIONS.md)
+- [Hybrid data modes and expanded network](docs/HYBRID_DATA_MODES.md)
 - [Validation](docs/VALIDATION.md)
 - [Map architecture](docs/MAP_ARCHITECTURE.md)
 - [Animation architecture](docs/ANIMATION_ARCHITECTURE.md)

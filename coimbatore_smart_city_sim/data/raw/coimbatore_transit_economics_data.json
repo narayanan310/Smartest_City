@@ -1,0 +1,95 @@
+{
+  "provenance": {
+    "sources": [
+      "Tamil Nadu State Transport Corporation (TNSTC) Coimbatore Division Operational Reports",
+      "Tamil Nadu Electricity Regulatory Commission (TNERC) Tariff Order No. 6 (Public EV Charging & HT Tariffs)",
+      "Central Electricity Authority (CEA) CO2 Baseline Database for Indian Power Sector (User Guide v19/v20)",
+      "Indian Oil Corporation Ltd (IOCL) Coimbatore Retail Fuel Pricing"
+    ],
+    "verification_date": "2026-10-05"
+  },
+  "transit_operations": {
+    "operator": "TNSTC Coimbatore",
+    "fleet_archetype": "12m Urban Transit Bus (Electric Retrofit / Standard Electric)",
+    "average_daily_km_per_bus": 220.0,
+    "operating_hours": [
+      6.0,
+      22.0
+    ],
+    "corridors": [
+      {
+        "id": "R1",
+        "name": "Avinashi Road Express Corridor",
+        "origin": "Gandhipuram Central Bus Stand",
+        "destination": "Chinniyampalayam / KMCH / SITRA Airport",
+        "length_km": 15.2,
+        "named_stops": 14,
+        "traffic_weight": 0.35
+      },
+      {
+        "id": "R2",
+        "name": "Pollachi Road Arterial Corridor",
+        "origin": "Ukkadam Bus Stand",
+        "destination": "Sundarapuram / Eachanari Temple / Kinathukadavu",
+        "length_km": 11.8,
+        "named_stops": 10,
+        "traffic_weight": 0.25
+      },
+      {
+        "id": "R3",
+        "name": "Mettupalayam Road Northern Corridor",
+        "origin": "Gandhipuram",
+        "destination": "Saibaba Colony / Thudiyalur / Periyanaickenpalayam",
+        "length_km": 14.1,
+        "named_stops": 12,
+        "traffic_weight": 0.25
+      },
+      {
+        "id": "R4",
+        "name": "Trichy Road Connector",
+        "origin": "Singanallur Bus Stand",
+        "destination": "Ramanathapuram / Sungam / Ondipudur",
+        "length_km": 10.8,
+        "named_stops": 10,
+        "traffic_weight": 0.15
+      }
+    ],
+    "energy_consumption": {
+      "nominal_electric_kwh_per_km": 1.0,
+      "traffic_congested_kwh_per_km": 1.25,
+      "daily_nominal_traction_kwh_per_bus": 219.0,
+      "battery_pack_capacity_kwh": 300.0,
+      "usable_soc_window_pct": [
+        10.0,
+        95.0
+      ]
+    },
+    "diesel_counterfactual": {
+      "diesel_fuel_economy_km_per_litre": 3.5,
+      "daily_diesel_burned_litres_per_bus": 62.86,
+      "diesel_price_inr_per_litre": 100.06,
+      "implied_diesel_fuel_value_inr_per_kwh": 28.69
+    },
+    "corridor_scope_note": "R1-R4 are illustrative demand archetypes for vetting tariff/energy arithmetic. They are NOT the simulated network geometry: the model runs Route 69/1/2/3 (standard) plus Route 45/70 (expanded) from src/config/settings.py."
+  },
+  "electricity_tariffs": {
+    "grid_utility": "TANGEDCO (Tamil Nadu Generation and Distribution Corporation)",
+    "public_ev_charging_tod_tariffs_inr_per_kwh": {
+      "solar_hours_09_00_to_16_00": 6.5,
+      "normal_offpeak_hours_16_00_to_18_00_and_22_00_to_06_00": 8.1,
+      "peak_hours_06_00_to_09_00_and_18_00_to_22_00": 9.75
+    },
+    "commercial_ht_tariff_base_inr_per_kwh": 8.0,
+    "open_access_wheeling_surcharge_inr_per_kwh": 0.54,
+    "blended_displaced_retail_cost_inr_per_kwh": 8.54
+  },
+  "carbon_emissions": {
+    "cea_grid_emission_factors_kg_co2_per_kwh": {
+      "baseline_2022_23": 0.823,
+      "official_2023_24": 0.727,
+      "provisional_2024_25": 0.71,
+      "simulation_adopted_constant": 0.82
+    },
+    "diesel_combustion_emission_factor_kg_co2_per_litre": 2.68
+  }
+}

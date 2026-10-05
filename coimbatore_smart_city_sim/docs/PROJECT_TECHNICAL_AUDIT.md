@@ -106,7 +106,7 @@ implemented, independent of original intentions.
 
 ## 9. Software hygiene
 
-- **[IMPLEMENTED]** 342 automated tests covering determinism, conservation, SOC bounds,
+- **[IMPLEMENTED]** 383 automated tests covering determinism, conservation, SOC bounds,
   route allocation, inventory accounting, swap tiers, solar physics, oxygen monotonicity
   and stationarity.
 - **[IMPLEMENTED]** A validation script with 24 physical invariants that exits non-zero on
@@ -125,7 +125,7 @@ implemented, independent of original intentions.
 
 | Check | Result |
 |---|---|
-| `python -m pytest -q` | 342 passed |
+| `python -m pytest -q` | 383 passed |
 | `python scripts/validate_results.py` | all checks passed, exit 0 |
 | `python -m src.simulation.engine` | clean |
 | Headless `streamlit run` | serves 200, no runtime errors or deprecation warnings |

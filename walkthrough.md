@@ -116,3 +116,21 @@ Read `docs/ASSUMPTIONS_AND_LIMITATIONS.md` before quoting any number. The most i
 - Economics are academic estimates. Each self-consumed kilowatt-hour is credited exactly
   once, at the displaced-fuel or retail value depending on which load it serves, so
   the same energy is never counted twice. Annual benefit Rs 29.94 Cr.
+---
+
+## Addendum — hybrid data modes & expanded network
+
+Two scenario axes extend the baseline above:
+
+- **Data mode** (`simulated` vs `hybrid`). Hybrid scales the solar profile by
+  the NASA monthly deviation, accrues revenue at the TNERC ToD tariff and
+  applies the CEA 0.727 factor — all read live from `data/raw/` with identical
+  fallbacks when files are absent. The ecology model is unchanged in both
+  modes (benchmarked against compiled TNPCB/CCMC secondary data, not fitted).
+- **Network mode** (`standard`: 4 corridors / 4 hubs vs `expanded`: 6 / 6,
+  adding Route 45, Route 70 and two hubs). The dashboard opens on
+  simulated/expanded: 175 swaps (71 solar / 104 grid), 49,542 kWh
+  self-consumed, 40.62 t CO₂/day at 15% / summer / seed 42.
+- `python scripts/ingest_and_vet_data.py` vets the raw snapshots (78 checks)
+  and regenerates `data/processed/`; the test suite does this automatically
+  on a bare clone. Full detail: `docs/HYBRID_DATA_MODES.md`.

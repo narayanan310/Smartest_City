@@ -63,3 +63,30 @@ def make_station_state(config: Config, ready: int) -> dict:
             "charging_queue": [],
         }
     }
+
+
+@pytest.fixture(scope="session", autouse=True)
+def processed_datasets():
+    """Guarantee the pipeline outputs exist before any test reads them.
+
+    ``data/processed/`` is gitignored by design (generated artefacts), so a
+    bare clone has no CSV/JSON feeds. This fixture regenerates them from the
+    committed ``data/raw/`` snapshots exactly once per session, which keeps
+    the suite green without vendoring generated files. Yields the processed
+    directory path.
+    """
+    processed_dir = Path(__file__).resolve().parent.parent / "data" / "processed"
+    expected = (
+        "clean_simulation_benchmarks.json",
+        "diurnal_solar_profiles.json",
+        "diurnal_solar_profiles.csv",
+        "transit_dispatch_curves.json",
+        "transit_dispatch_curves.csv",
+    )
+    if not all((processed_dir / name).is_file() for name in expected):
+        sys.path.insert(0, str(processed_dir.parent.parent / "scripts"))
+        from ingest_and_vet_data import main as run_pipeline
+
+        assert run_pipeline() == 0
+        assert all((processed_dir / name).is_file() for name in expected)
+    return processed_dir

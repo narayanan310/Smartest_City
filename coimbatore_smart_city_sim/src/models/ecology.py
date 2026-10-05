@@ -150,7 +150,7 @@ class EcologyParams:
     pv_cooling_night_fraction: float = 0.11
 
     # ── Derived display indicators ─────────────────────────────────────────
-    ph_base: float = 7.45
+    ph_base: float = 7.6
     ph_photosynthetic_rise: float = 0.65
     ph_coverage_penalty: float = 0.15
     turbidity_base_ntu: float = 25.0

@@ -179,7 +179,8 @@ html, body, [class*="css"] { font-family:'Outfit',sans-serif !important; }
 
 
 def _config_from(coverage: float, fleet: int, battery: float, traffic: float,
-                 cloud: float, bays: int) -> Config:
+                 cloud: float, bays: int, data_mode: str = "simulated",
+                 network_mode: str = "standard") -> Config:
     cfg = Config()
     cfg.NUM_BUSES = int(fleet)
     cfg.BATTERY_CAPACITY_KWH = float(battery)
@@ -187,13 +188,16 @@ def _config_from(coverage: float, fleet: int, battery: float, traffic: float,
     cfg.CLOUD_COVER_MULTIPLIER = float(cloud)
     cfg.CHARGER_BAYS_PER_STATION = int(bays)
     cfg.DEFAULT_COVERAGE_PCT = float(coverage)
+    cfg.set_data_mode(data_mode)
+    cfg.set_network_mode(network_mode)
     return cfg
 
 
 @st.cache_data(show_spinner=False)
 def cached_economics(coverage: float, fleet: int, battery: float, traffic: float,
                      cloud: float, bays: int, season: str, seed: int,
-                     tariff: float, surcharge: float, diesel_price: float) -> Dict[str, Any]:
+                     tariff: float, surcharge: float, diesel_price: float,
+                     data_mode: str = "simulated", network_mode: str = "standard") -> Dict[str, Any]:
     """Project economics with each self-consumed kilowatt-hour credited exactly once.
 
     Split out from the Tab 3 rendering so the no-double-counting property is directly
@@ -213,8 +217,8 @@ def cached_economics(coverage: float, fleet: int, battery: float, traffic: float
     Returns every intermediate quantity, so the dashboard can show its working rather
     than a single opaque number.
     """
-    cfg = _config_from(coverage, fleet, battery, traffic, cloud, bays)
-    annual = cached_annual(coverage, fleet, battery, traffic, cloud, bays, season, seed)
+    cfg = _config_from(coverage, fleet, battery, traffic, cloud, bays, data_mode, network_mode)
+    annual = cached_annual(coverage, fleet, battery, traffic, cloud, bays, season, seed, data_mode, network_mode)
 
     direct_kwh = annual["annual_direct_use_gwh"] * 1e6
     bus_kwh = annual["annual_bus_demand_gwh"] * 1e6
@@ -231,7 +235,16 @@ def cached_economics(coverage: float, fleet: int, battery: float, traffic: float
     )
     baseline_diesel_inr = diesel_litres * diesel_price
     diesel_value_per_kwh = baseline_diesel_inr / bus_kwh if bus_kwh > 0 else 0.0
-    retail_value_per_kwh = tariff + surcharge
+    # In hybrid mode the engine accrues revenue hour by hour at the ToD tariff,
+    # so the municipal share is valued at the realized blend the annual model
+    # reports (rate + surcharge included). In simulated mode the blend equals
+    # the flat input tariff by construction, so both paths agree exactly.
+    if cfg.DATA_MODE == "hybrid":
+        retail_value_per_kwh = annual["annual_blended_retail_inr_per_kwh"]
+        retail_basis_note = "realized ToD blend (engine-accrued)"
+    else:
+        retail_value_per_kwh = tariff + surcharge
+        retail_basis_note = "input tariff + surcharge"
 
     tariff_revenue_inr = solar_to_municipal_kwh * retail_value_per_kwh
     diesel_revenue_inr = solar_to_traction_kwh * diesel_value_per_kwh
@@ -256,6 +269,7 @@ def cached_economics(coverage: float, fleet: int, battery: float, traffic: float
         "baseline_diesel_inr": baseline_diesel_inr,
         "diesel_value_per_kwh": diesel_value_per_kwh,
         "retail_value_per_kwh": retail_value_per_kwh,
+        "retail_basis_note": retail_basis_note,
         "tariff_revenue_inr": tariff_revenue_inr,
         "diesel_revenue_inr": diesel_revenue_inr,
         "benefit_inr": benefit_inr,
@@ -270,19 +284,21 @@ def cached_economics(coverage: float, fleet: int, battery: float, traffic: float
 
 @st.cache_data(show_spinner=False)
 def cached_trajectory(coverage: float, fleet: int, battery: float, traffic: float,
-                      cloud: float, bays: int, season: str, seed: int) -> List[Dict[str, Any]]:
+                      cloud: float, bays: int, season: str, seed: int,
+                      data_mode: str = "simulated", network_mode: str = "standard") -> List[Dict[str, Any]]:
     """Pre-compute the 48-frame map trajectory for an isolated engine copy."""
-    cfg = _config_from(coverage, fleet, battery, traffic, cloud, bays)
+    cfg = _config_from(coverage, fleet, battery, traffic, cloud, bays, data_mode, network_mode)
     engine = SimulationEngine(cfg, coverage_pct=coverage, season=season, seed=seed)
     return build_frame_trajectory(engine, cfg)
 
 
 @st.cache_data(show_spinner=False)
 def cached_daily_run(coverage: float, fleet: int, battery: float, traffic: float,
-                     cloud: float, bays: int, season: str, seed: int
+                     cloud: float, bays: int, season: str, seed: int,
+                     data_mode: str = "simulated", network_mode: str = "standard"
                      ) -> Dict[str, Any]:
     """Run a complete reference day and return its summary, frame and telemetry."""
-    cfg = _config_from(coverage, fleet, battery, traffic, cloud, bays)
+    cfg = _config_from(coverage, fleet, battery, traffic, cloud, bays, data_mode, network_mode)
     engine = SimulationEngine(cfg, coverage_pct=coverage, season=season, seed=seed)
     engine.run(STEPS)
     return {
@@ -295,9 +311,10 @@ def cached_daily_run(coverage: float, fleet: int, battery: float, traffic: float
 
 @st.cache_data(show_spinner=False)
 def cached_annual(coverage: float, fleet: int, battery: float, traffic: float,
-                  cloud: float, bays: int, season: str, seed: int) -> Dict[str, Any]:
+                  cloud: float, bays: int, season: str, seed: int,
+                  data_mode: str = "simulated", network_mode: str = "standard") -> Dict[str, Any]:
     """Run the 365-day, 8,760-hour annual model."""
-    cfg = _config_from(coverage, fleet, battery, traffic, cloud, bays)
+    cfg = _config_from(coverage, fleet, battery, traffic, cloud, bays, data_mode, network_mode)
     engine = SimulationEngine(cfg, coverage_pct=coverage, season=season, seed=seed)
     return engine.run_annual_simulation()
 
@@ -351,11 +368,12 @@ def cached_sensitivity(season: str, seed: int, ambient_c: float,
 
 @st.cache_data(show_spinner=False)
 def cached_solar_validation(coverage: float, fleet: int, battery: float, traffic: float,
-                            cloud: float, bays: int, season: str, seed: int) -> List[Dict[str, Any]]:
+                            cloud: float, bays: int, season: str, seed: int,
+                            data_mode: str = "simulated", network_mode: str = "standard") -> List[Dict[str, Any]]:
     """Compare the embedded clear-sky profile against an independent irradiance source."""
     from src.services.nasa_power import MONTH_NAMES, MONTHLY_TEMP_C, monthly_ghi_series
 
-    cfg = _config_from(coverage, fleet, battery, traffic, cloud, bays)
+    cfg = _config_from(coverage, fleet, battery, traffic, cloud, bays, data_mode, network_mode)
     annual = SimulationEngine(cfg, coverage_pct=coverage, season=season, seed=seed).run_annual_simulation()
     ghi = monthly_ghi_series(allow_fetch=False)
     days = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
@@ -393,7 +411,7 @@ def cached_solar_validation(coverage: float, fleet: int, battery: float, traffic
 def init_session() -> None:
     ss = st.session_state
     if "config" not in ss:
-        ss.config = Config()
+        ss.config = Config(network_mode="expanded")
     if "engine" not in ss:
         ss.engine = SimulationEngine(ss.config, coverage_pct=15.0, season="summer")
     ss.setdefault("running", False)
@@ -409,10 +427,13 @@ def init_session() -> None:
     for key, default in (
         ("_coverage", 15.0), ("_season", "summer"), ("_fleet", 260),
         ("_battery", 300.0), ("_traffic", 1.0), ("_cloud", 1.0), ("_bays", 4),
-        ("_seed", 42), ("_stress", False),
-        # Scalar scenario tuple, kept in step with the controls above so that a fresh
-        # session can start a new run without waiting for a control to change.
-        ("_scenario", (15.0, 260, 300.0, 1.0, 1.0, 4)),
+        ("_seed", 42), ("_stress", False), ("_data_mode", "simulated"),
+        ("_network_mode", "expanded"),
+        # Scalar scenario tuple (coverage, fleet, battery, traffic, cloud, bays,
+        # season, seed, data_mode, network_mode), kept in step with the controls
+        # above so that a fresh session can start a new run without waiting for
+        # a control to change.
+        ("_scenario", (15.0, 260, 300.0, 1.0, 1.0, 4, "summer", 42, "simulated", "expanded")),
     ):
         ss.setdefault(key, default)
 
@@ -429,7 +450,9 @@ def start_new_run(coverage: float, season: str, seed: int) -> Config:
     quoting the previous configuration's capacity and service window.
     """
     ss = st.session_state
-    cfg = _config_from(*ss._scenario[:6])
+    data_mode = ss.get("_data_mode", "simulated")
+    network_mode = ss.get("_network_mode", "expanded")
+    cfg = _config_from(*ss._scenario[:6], data_mode=data_mode, network_mode=network_mode)
     ss.config = cfg
     ss.engine = SimulationEngine(cfg, coverage_pct=coverage, season=season, seed=seed)
     ss.step_idx = 0
@@ -506,6 +529,28 @@ with st.sidebar:
                            value=int(st.session_state._seed), step=1,
                            help="Fixes the weather and mixing-noise realisations so a run is reproducible.")
 
+    st.markdown("##### 🔬 Data & Calibration Mode")
+    data_mode_choice = st.radio(
+        "Data Source Mode",
+        ["simulated", "hybrid"],
+        index=0 if st.session_state.get("_data_mode", "simulated") == "simulated" else 1,
+        format_func=lambda m: "🧮 Pure Simulated (Synthetic Baseline)" if m == "simulated"
+        else "📡 Gathered + Simulated (NASA & TNPCB Hybrid)",
+        help="Pure Simulated: Clear-sky baseline, flat commercial tariff (₹8.00+0.54), CEA 0.82 kg/kWh. "
+             "Gathered + Simulated: NASA POWER satellite GHI & temp calibration, TNERC ToD EV tariff (₹6.50-₹9.75), CEA 0.727 kg/kWh.",
+    )
+
+    network_mode_choice = st.radio(
+        "Corridor & Station Network",
+        ["expanded", "standard"],
+        index=0 if st.session_state.get("_network_mode", "expanded") == "expanded" else 1,
+        format_func=lambda n: "🚀 Expanded Network (6 Corridors, 6 Hubs)" if n == "expanded"
+        else "🏛️ Core Network (4 Corridors, 4 Hubs)",
+        help="Expanded: Adds Route 45 (Sathy Rd IT SEZ), Route 70 (Western Vadavalli), "
+             "Saravanampatti IT Hub Station, and Vadavalli-RS Puram West Hub. "
+             "Core: Shipped baseline (4 corridors, 4 hubs).",
+    )
+
     speed_map = {"0.5×": 0.5, "1×": 1.0, "2×": 2.0, "5×": 5.0, "10×": 10.0}
     st.session_state.sim_speed = speed_map[
         st.select_slider("⏩ Playback speed", options=list(speed_map), value="2×")
@@ -521,20 +566,25 @@ with st.sidebar:
         or charger_bays != st.session_state._bays
         or seed != st.session_state._seed
         or stress_mode != st.session_state._stress
+        or data_mode_choice != st.session_state.get("_data_mode", "simulated")
+        or network_mode_choice != st.session_state.get("_network_mode", "expanded")
     )
     if changed:
-        st.session_state._scenario = (
-            float(coverage_pct), int(fleet_size), float(battery_capacity),
-            float(traffic_factor), float(cloud_multiplier), int(charger_bays),
-        )
-        cfg = start_new_run(float(coverage_pct), season, int(seed))
-        engine = st.session_state.engine
         st.session_state.update({
             "_coverage": coverage_pct, "_season": season, "_fleet": fleet_size,
             "_battery": float(battery_capacity), "_traffic": traffic_factor,
             "_cloud": cloud_multiplier, "_bays": charger_bays, "_seed": int(seed),
             "_stress": stress_mode,
+            "_data_mode": data_mode_choice,
+            "_network_mode": network_mode_choice,
         })
+        st.session_state._scenario = (
+            float(coverage_pct), int(fleet_size), float(battery_capacity),
+            float(traffic_factor), float(cloud_multiplier), int(charger_bays),
+            season, int(seed), data_mode_choice, network_mode_choice,
+        )
+        cfg = start_new_run(float(coverage_pct), season, int(seed))
+        engine = st.session_state.engine
 
     st.markdown("---")
     st.markdown("#### 🎮 Playback")
@@ -558,27 +608,37 @@ with st.sidebar:
     st.markdown(f"""
 | Parameter | Value |
 |---|---|
+| Data mode | **{'Pure Simulated (Synthetic)' if cfg.DATA_MODE == 'simulated' else 'Gathered + Simulated (Hybrid NASA/TNPCB)'}** |
+| Network scope | **{'Core (4 corridors, 4 hubs)' if cfg.NETWORK_MODE == 'standard' else 'Expanded (6 corridors, 6 hubs)'}** |
 | Lake area | 1.295 km² |
 | Lake mean depth | {cfg.LAKE_DEPTH_M:.2f} m (volume ≈ {cfg.lake_volume_m3() / 1e6:.2f} M m³) |
 | Installed capacity at {coverage_pct:.0f}% | **{cfg.capacity_mwp(coverage_pct):.2f} MWp** |
-| Fleet | **{fleet_size} buses** across 4 corridors |
+| Fleet | **{fleet_size} buses** across {len(cfg.ROUTES)} corridors |
 | Pack capacity | {battery_capacity:.0f} kWh |
 | Service window | {cfg.SERVICE_START_HOUR:.0f}:00 – {cfg.SERVICE_END_HOUR:.0f}:00 |
 | Daily traction per bus | {cfg.DAILY_CONSUMPTION_KWH:.0f} kWh at 1.0× traffic |
-| Swap hubs | 4 · {charger_bays} bays each · {cfg.CHARGE_RATE_KW:.0f} kW per bay |
+| Swap hubs | {len(cfg.SWAP_STATIONS)} · {charger_bays} bays each · {cfg.CHARGE_RATE_KW:.0f} kW per bay |
 | Swap time | ~{cfg.SWAP_TIME_MIN} min (inside one 30-min step) |
 | Ecological cap | {cfg.ECOLOGICAL_CAP_PCT:.0f}% surface coverage |
 | DO threshold | ≥ {cfg.DO_MIN_OK:.1f} mg/L, aeration below {cfg.DO_AERATION_TRIGGER:.1f} |
 | Seed | {int(seed)} |
 """)
     st.markdown("#### ℹ️ Data sources")
+    data_mode_note = (
+        "Hybrid mode scales the profile by the NASA monthly deviation and accrues "
+        "revenue at the TNERC ToD tariff, both read live from data/raw/."
+        if cfg.DATA_MODE == "hybrid" else
+        "Simulated mode uses the embedded profile, a flat tariff and the 0.82 factor."
+    )
     st.caption(
-        "Solar profile: embedded SRRA/MNRE-style curve with a −0.4 %/°C cell-temperature "
-        "derate and an 8 °C floating cell-temperature rise. Weather: seeded synthetic "
-        "cloud, cross-checked against an irradiance reference. Routes: embedded "
-        "street-accurate waypoints. Map tiles: OpenStreetMap, browser-side Leaflet, no "
-        "API key. Lake DO: mass-conserving budget model, not a calibrated "
-        "hydrodynamic simulation."
+        "Solar profile: embedded SRRA/MNRE-style curve (NASA monthly deviation applied "
+        "in hybrid mode) with a −0.4 %/°C cell-temperature derate and an 8 °C floating "
+        "cell-temperature rise. Weather: seeded synthetic cloud, cross-checked against "
+        "an irradiance reference. Routes: street-accurate OSRM waypoints for the core "
+        "network; expanded corridors are hand-digitized pending OSRM verification. "
+        "Map tiles: OpenStreetMap, browser-side Leaflet, no API key. Lake DO: "
+        "mass-conserving budget model benchmarked against compiled TNPCB/CCMC secondary "
+        "data (not fitted to it) — see docs/HYBRID_DATA_MODES.md. " + data_mode_note
     )
 
 # Scenario tuple used as the cache key for every derived computation. The config is
@@ -589,9 +649,9 @@ with st.sidebar:
 SCENARIO = (
     float(coverage_pct), int(fleet_size), float(battery_capacity),
     float(traffic_factor), float(cloud_multiplier), int(charger_bays),
-    season, int(seed),
+    season, int(seed), data_mode_choice, network_mode_choice,
 )
-cfg = _config_from(*SCENARIO[:6])
+cfg = _config_from(*SCENARIO[:6], data_mode=SCENARIO[8], network_mode=SCENARIO[9])
 st.session_state.config = cfg
 engine.config = cfg
 
@@ -1203,7 +1263,10 @@ with tab_finance:
 
     # The priced streams come from the tested helper, so what the dashboard displays and
     # what the test suite verifies are the same arithmetic.
-    econ = cached_economics(*SCENARIO, float(tariff), float(surcharge), float(diesel_price))
+    econ = cached_economics(
+        *SCENARIO[:8], float(tariff), float(surcharge), float(diesel_price),
+        data_mode=SCENARIO[8], network_mode=SCENARIO[9],
+    )
     annual = econ["annual"]
 
     # ── Capital cost ───────────────────────────────────────────────────────
@@ -1260,7 +1323,7 @@ with tab_finance:
 | Annual benefit stream | Energy | Value applied | Amount |
 |---|---:|---:|---:|
 | Solar to fleet traction (displaces diesel) | {solar_to_traction_kwh / 1e6:.2f} GWh | Rs {diesel_value_per_kwh:.2f}/kWh | Rs {diesel_revenue_inr / 1e7:.2f} Cr |
-| Solar to municipal load (displaces grid) | {solar_to_municipal_kwh / 1e6:.2f} GWh | Rs {retail_value_per_kwh:.2f}/kWh | Rs {tariff_revenue_inr / 1e7:.2f} Cr |
+| Solar to municipal load (displaces grid) | {solar_to_municipal_kwh / 1e6:.2f} GWh | Rs {retail_value_per_kwh:.2f}/kWh ({econ['retail_basis_note']}) | Rs {tariff_revenue_inr / 1e7:.2f} Cr |
 | **Total benefit** | **{annual_direct_kwh / 1e6:.2f} GWh** | -- | **Rs {annual_benefit_inr / 1e7:.2f} Cr** |
 | Less operations and maintenance | | | -Rs {annual_opex_inr / 1e7:.2f} Cr |
 | **Net annual** | | | **Rs {net_cashflow_inr / 1e7:.2f} Cr** |
@@ -1309,7 +1372,7 @@ Rs {econ['upper_bound_benefit_inr'] / 1e7:.2f} Cr.
 | Baseline distance per bus | {cfg.DIESEL_KM_PER_BUS_PER_DAY:.0f} km/day | TNSTC operational estimate |
 | Baseline diesel economy | {cfg.DIESEL_KM_PER_LITRE:.1f} km/L | TNSTC bus average |
 | Implied diesel value | Rs {diesel_value_per_kwh:.2f}/kWh | Derived: baseline fuel cost / baseline traction energy |
-| Grid CO2 factor | {cfg.CO2_GRID_KG_PER_KWH:.2f} kg/kWh | CEA India |
+| Grid CO2 factor | {cfg.grid_emission_factor():.3f} kg/kWh | CEA India (0.727 hybrid, 0.82 simulated) |
 | Diesel CO2 factor | {cfg.CO2_DIESEL_KG_PER_LITRE:.2f} kg/L | Stoichiometric |
 | Operations and maintenance | Rs {cfg.OPEX_PER_MWP_CR_YEAR:.2f} Cr/MWp/yr | {ASSUMED_BASIS} |
 | Battery packs | {num_packs} ({fleet_size} fleet + {station_packs} hub spares) | Pack inventory model |

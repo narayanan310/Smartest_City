@@ -341,19 +341,23 @@ _TEMPLATE = """<!DOCTYPE html>
   .hud-time {{ color:#FCD34D; font-weight:700; font-size:15px; }}
   .hud-phase {{ color:#94A3B8; font-size:12px; display:block; margin-top:2px; }}
   .hud-stats {{ display:flex; gap:14px; white-space:nowrap; font-size:11px; color:#CBD5E1; }}
-  #focusLake {{ position:absolute; top:14px; left:14px; z-index:1000;
-    background:rgba(15,23,42,0.9); color:#38BDF8; border:1px solid rgba(56,189,248,0.45);
+  .map-btn {{ position:absolute; top:62px; z-index:1000;
+    background:rgba(15,23,42,0.92); color:#38BDF8; border:1px solid rgba(56,189,248,0.45);
     border-radius:8px; padding:6px 11px; font-size:11px; font-weight:600; cursor:pointer;
-    font-family:inherit; letter-spacing:0.02em; }}
-  #focusLake:hover {{ background:rgba(56,189,248,0.18); color:#E0F2FE; }}
-  #focusLake:active {{ transform:translateY(1px); }}
+    font-family:inherit; letter-spacing:0.02em; box-shadow:0 2px 8px rgba(0,0,0,0.5); }}
+  .map-btn:hover {{ background:rgba(56,189,248,0.22); color:#E0F2FE; }}
+  .map-btn:active {{ transform:translateY(1px); }}
+  #focusLake {{ left:14px; }}
+  #fitNetwork {{ left:108px; }}
   .legend {{ position:absolute; bottom:14px; right:14px; z-index:1000;
-    background:rgba(15,23,42,0.9); border:1px solid rgba(56,189,248,0.35); border-radius:8px;
-    padding:10px 12px; color:#F8FAFC; font-size:11px; line-height:1.5; max-width:190px; }}
+    background:rgba(15,23,42,0.92); border:1px solid rgba(56,189,248,0.35); border-radius:8px;
+    padding:10px 12px; color:#F8FAFC; font-size:11px; line-height:1.5; max-width:210px; max-height:360px; overflow-y:auto; }}
   .legend h4 {{ margin:0 0 6px; font-size:12px; color:#38BDF8; }}
   .legend div {{ display:flex; align-items:center; gap:6px; }}
-  .swatch {{ display:inline-block; width:11px; height:11px; border-radius:50%; }}
-  .line {{ display:inline-block; width:14px; height:3px; }}
+  .legend-route-row {{ cursor:pointer; padding:2px 4px; border-radius:4px; transition:background 0.15s; }}
+  .legend-route-row:hover {{ background:rgba(56,189,248,0.2); color:#38BDF8; }}
+  .swatch {{ display:inline-block; width:11px; height:11px; border-radius:50%; flex-shrink:0; }}
+  .line {{ display:inline-block; width:14px; height:3px; flex-shrink:0; }}
   .leaflet-popup-content-wrapper {{ background:#0F172A; color:#E2E8F0;
     border:1px solid rgba(56,189,248,0.4); border-radius:8px; }}
   .leaflet-popup-tip {{ background:#0F172A; }}
@@ -375,7 +379,8 @@ _TEMPLATE = """<!DOCTYPE html>
     <span>&#128167; <b id="do">--</b> mg/L</span>
   </div>
 </div>
-<button id="focusLake" type="button" title="Frame the Ukkadam Lake floating array">Focus lake</button>
+<button id="focusLake" class="map-btn" type="button" title="Frame the Ukkadam Lake floating array">Focus lake</button>
+<button id="fitNetwork" class="map-btn" type="button" title="Fit all transit corridors and swap hubs across Coimbatore">Show all routes</button>
 <div class="legend">
   <h4>Corridors &amp; fleet status</h4>
   <div id="legendRoutes"></div>
@@ -438,9 +443,23 @@ const solarLayer = L.polygon(D.solarPolygon,
   }});
 }})();
 
+(function () {{
+  var btn = document.getElementById('fitNetwork');
+  if (!btn) return;
+  function fit() {{
+    map.fitBounds([[{south}, {west}], [{north}, {east}]],
+                  {{ padding:[{pad_px}, {pad_px}, {pad_px}, {pad_px}] }});
+    btn.blur();
+  }}
+  btn.addEventListener('click', fit);
+  btn.addEventListener('keydown', function (e) {{
+    if (e.key === 'Enter' || e.key === ' ') {{ e.preventDefault(); fit(); }}
+  }});
+}})();
+
 const legendRoutes = document.getElementById('legendRoutes');
 for (const [rid, info] of Object.entries(D.routes)) {{
-  L.polyline(info.waypoints, {{ color:info.color, weight:4, opacity:0.85 }}).addTo(map)
+  const poly = L.polyline(info.waypoints, {{ color:info.color, weight:4, opacity:0.85 }}).addTo(map)
     .bindTooltip('<b>' + rid + '</b>: ' + info.name + '<br>' + info.buses + ' buses &bull; '
                  + info.stopNames.length + ' named stops');
   const w = info.waypoints;
@@ -453,9 +472,16 @@ for (const [rid, info] of Object.entries(D.routes)) {{
       fillColor:'#0F172A', fillOpacity:1 }}).addTo(map)
       .bindTooltip('<b>' + rid + ' &middot; ' + name + '</b><br>Operational stop');
   }});
-  legendRoutes.insertAdjacentHTML('beforeend',
-    '<div><span class="line" style="background:' + info.color + '"></span>'
-    + rid + '</div>');
+  const row = document.createElement('div');
+  row.className = 'legend-route-row';
+  row.title = 'Click to zoom to ' + rid + ' (' + info.name + ')';
+  row.innerHTML = '<span class="line" style="background:' + info.color + '"></span>'
+    + '<span style="font-weight:600">' + rid + '</span>';
+  row.addEventListener('click', () => {{
+    map.fitBounds(poly.getBounds(), {{ padding: [60, 60] }});
+    poly.openTooltip();
+  }});
+  legendRoutes.appendChild(row);
 }}
 
 for (const b of D.buildings) {{

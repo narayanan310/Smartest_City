@@ -72,8 +72,100 @@ BUS_STATE_LABELS: Tuple[str, ...] = (
 BUS_CONDITION_LABELS: Tuple[str, ...] = SOC_STATUS_LABELS + BUS_STATE_LABELS
 
 
+# ─────────────────────────────────────────────────────────────
+# STRATEGIC CORRIDOR EXTENSIONS (Expanded Smart City Network)
+# ─────────────────────────────────────────────────────────────
+
+#: High-density IT & Western commuter radial corridors connecting key growth zones.
+EXTRA_ROUTES: Dict[str, dict] = {
+    "Route 45": {
+        "color": "#E74C3C",
+        "name": "Gandhipuram Hub → Saravanampatti IT SEZ (Sathy Road)",
+        "buses_allocated": 40,
+        "stop_names": [
+            "Gandhipuram Hub",
+            "Ganapathy",
+            "Prozone Mall",
+            "Athipalayam Pirivu",
+            "Saravanampatti Junction",
+            "CHIL SEZ IT Park",
+        ],
+        "stop_waypoint_indices": [0, 5, 7, 8, 11, 13],
+        "waypoints": [
+            (11.0163, 76.9693),
+            (11.0185, 76.9712),
+            (11.0210, 76.9730),
+            (11.0265, 76.9750),
+            (11.0320, 76.9770),
+            (11.0390, 76.9790),
+            (11.0450, 76.9815),
+            (11.0510, 76.9845),
+            (11.0580, 76.9880),
+            (11.0660, 76.9910),
+            (11.0740, 76.9935),
+            (11.0790, 76.9950),
+            (11.0820, 76.9965),
+            (11.0850, 76.9980),
+        ],
+    },
+    "Route 70": {
+        "color": "#FF2E93",
+        "name": "Town Hall → RS Puram → Vadavalli (Western Corridor)",
+        "buses_allocated": 30,
+        "stop_names": [
+            "Town Hall",
+            "RS Puram",
+            "TNAU Agri University",
+            "Lawley Road",
+            "Vadavalli Bus Stand",
+        ],
+        "stop_waypoint_indices": [0, 3, 5, 6, 10],
+        "waypoints": [
+            (10.9968, 76.9556),
+            (11.0010, 76.9520),
+            (11.0045, 76.9490),
+            (11.0080, 76.9475),
+            (11.0115, 76.9430),
+            (11.0135, 76.9380),
+            (11.0145, 76.9320),
+            (11.0165, 76.9260),
+            (11.0190, 76.9180),
+            (11.0220, 76.9110),
+            (11.0250, 76.9050),
+        ],
+    },
+}
+
+#: Strategically sited fast-swap facilities addressing coverage voids in North-East and West.
+EXTRA_SWAP_STATIONS: List[dict] = [
+    {
+        "id": 5,
+        "name": "Saravanampatti IT Hub Station",
+        "lat": 11.0805,
+        "lon": 76.9950,
+        "capacity_buses": 30,
+        "desc": "Sathy Road IT corridor fast-swap facility (serving CHIL SEZ & KGISL commuters)",
+    },
+    {
+        "id": 6,
+        "name": "Vadavalli - RS Puram West Hub",
+        "lat": 11.0150,
+        "lon": 76.9280,
+        "capacity_buses": 25,
+        "desc": "Western radial corridor swap hub at Lawley Road / TNAU junction",
+    },
+]
+
+
 @dataclass
 class Config:
+    #: Simulation data mode: "simulated" (pure synthetic baseline) or "hybrid" (gathered authentic data + simulation).
+    DATA_MODE: str = "simulated"
+    #: Transit network scope: "standard" (4 corridors, 4 hubs) or "expanded" (6 corridors, 6 hubs).
+    NETWORK_MODE: str = "standard"
+    #: Lowercase aliases for keyword argument convenience
+    data_mode: Optional[str] = None
+    network_mode: Optional[str] = None
     # ─────────────────────────────────────────────
     # UKKADAM LAKE (PERIYAKULAM), COIMBATORE
     # OSM-verified exact boundary coordinates
@@ -814,9 +906,98 @@ class Config:
             turbidity_coverage_reduction_ntu=self.TURBIDITY_COVERAGE_REDUCTION_NTU,
         )
 
+    def __post_init__(self) -> None:
+        if self.data_mode is not None:
+            self.DATA_MODE = self.data_mode
+        if self.network_mode is not None:
+            self.NETWORK_MODE = self.network_mode
+
+        if self.DATA_MODE not in ("simulated", "hybrid"):
+            raise ValueError(f"DATA_MODE must be 'simulated' or 'hybrid', got {self.DATA_MODE!r}")
+        if self.NETWORK_MODE not in ("standard", "expanded"):
+            raise ValueError(f"NETWORK_MODE must be 'standard' or 'expanded', got {self.NETWORK_MODE!r}")
+
+        if self.NETWORK_MODE == "expanded":
+            expanded_routes = dict(self.ROUTES)
+            for k, v in EXTRA_ROUTES.items():
+                if k not in expanded_routes:
+                    expanded_routes[k] = v
+            self.ROUTES = expanded_routes
+
+            expanded_stations = list(self.SWAP_STATIONS)
+            existing_ids = {s["id"] for s in expanded_stations}
+            for s in EXTRA_SWAP_STATIONS:
+                if s["id"] not in existing_ids:
+                    expanded_stations.append(dict(s))
+            self.SWAP_STATIONS = expanded_stations
+
+    def set_network_mode(self, mode: str) -> None:
+        """Switch between 'standard' (4 routes, 4 hubs) and 'expanded' (6 routes, 6 hubs)."""
+        if mode not in ("standard", "expanded"):
+            raise ValueError(f"network_mode must be 'standard' or 'expanded', got {mode!r}")
+        self.NETWORK_MODE = mode
+        if mode == "expanded":
+            expanded_routes = dict(self.ROUTES)
+            for k, v in EXTRA_ROUTES.items():
+                expanded_routes[k] = v
+            self.ROUTES = expanded_routes
+
+            expanded_stations = [s for s in self.SWAP_STATIONS if s["id"] not in (5, 6)]
+            for s in EXTRA_SWAP_STATIONS:
+                expanded_stations.append(dict(s))
+            self.SWAP_STATIONS = expanded_stations
+        else:
+            self.ROUTES = {k: v for k, v in self.ROUTES.items() if k not in EXTRA_ROUTES}
+            self.SWAP_STATIONS = [s for s in self.SWAP_STATIONS if s["id"] not in (5, 6)]
+
+    def set_data_mode(self, mode: str) -> None:
+        """Switch between 'simulated' (synthetic baseline) and 'hybrid' (gathered + simulated)."""
+        if mode not in ("simulated", "hybrid"):
+            raise ValueError(f"data_mode must be 'simulated' or 'hybrid', got {mode!r}")
+        self.DATA_MODE = mode
+
+    def tod_tariff_per_kwh(self, hour: float) -> float:
+        """Time-of-Day tariff per kWh.
+
+        In 'hybrid' mode: implements TNERC Order No. 6 Public EV Charging Time-of-Day rate,
+        read from the curated transit snapshot (``data/raw/``) with the table below as
+        fallback when the file is absent:
+          - 09:00 - 16:00: Rs 6.50 (Solar hours incentive)
+          - 06:00 - 09:00 & 18:00 - 22:00: Rs 9.75 (Peak hours)
+          - 16:00 - 18:00 & 22:00 - 06:00: Rs 8.10 (Normal / Off-peak)
+        In 'simulated' mode: returns standard base GRID_TARIFF_PER_KWH (Rs 8.00).
+        """
+        if self.DATA_MODE == "hybrid":
+            from src.services.hybrid_data import hybrid_tariff_table
+
+            table = hybrid_tariff_table()
+            h = hour % 24.0
+            if 9.0 <= h < 16.0:
+                return table["solar_hours"]
+            elif (6.0 <= h < 9.0) or (18.0 <= h < 22.0):
+                return table["peak_hours"]
+            else:
+                return table["normal_hours"]
+        return self.GRID_TARIFF_PER_KWH
+
+    def grid_emission_factor(self) -> float:
+        """CEA Grid emission factor in kg CO2/kWh.
+
+        In 'hybrid' mode: returns the CEA 2023-24 official factor read from the curated
+        transit snapshot (0.727 kg CO2/kWh), falling back to that same value without files.
+        In 'simulated' mode: returns standard base CO2_GRID_KG_PER_KWH (0.82 kg CO2/kWh).
+        """
+        if self.DATA_MODE == "hybrid":
+            from src.services.hybrid_data import hybrid_emission_factor
+
+            return hybrid_emission_factor()
+        return self.CO2_GRID_KG_PER_KWH
+
     def scenario_signature(self) -> Dict[str, Any]:
         """Return the scalar settings that define a scenario, for hashing and manifests."""
         return {
+            "data_mode": self.DATA_MODE,
+            "network_mode": self.NETWORK_MODE,
             "coverage_pct": self.DEFAULT_COVERAGE_PCT,
             "num_buses": self.NUM_BUSES,
             "battery_capacity_kwh": self.BATTERY_CAPACITY_KWH,

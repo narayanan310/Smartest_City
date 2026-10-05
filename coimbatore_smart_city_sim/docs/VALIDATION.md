@@ -2,14 +2,16 @@
 
 ```bash
 python scripts/validate_results.py   # exits 1 if any check fails
-python -m pytest -q                  # 342 tests
+python -m pytest -q                  # 383 tests
 python -m src.simulation.engine      # standalone self-check
 ```
 
 The validation script prints every check with its measured value. It currently runs
 **40 checks** across seven groups: energy balance, fleet consistency, impact
 accounting, determinism, the coverage ladder, robustness to degenerate configurations,
-and the photovoltaic model. Current results at 15% coverage, summer, seed 42:
+and the photovoltaic model. Current results at 15% coverage, summer, seed 42
+(simulated/standard — the class defaults; the dashboard opens on
+simulated/expanded, see `docs/HYBRID_DATA_MODES.md` for that column):
 
 | Measure | Value |
 |---|---:|

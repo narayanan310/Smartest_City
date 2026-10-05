@@ -38,9 +38,10 @@ from src.algorithms.solar import calc_generation, get_cloud_cover
 from src.config.settings import Config
 from src.models.bus import Bus
 from src.models.ecology import EcologyParams, check_ecology, update_ecology
+from src.services.hybrid_data import effective_generation_inputs
 
 #: Length of one simulation step, in hours.
-TIME_STEP_HOURS = 0.5
+TIME_STEP_HOURS = Config.TIME_STEP_HOURS
 
 #: Steps in one simulated day, derived from the configured timestep so the clock and the
 #: step count cannot drift apart. At the shipped 0.5 h resolution this is 48, i.e. the
@@ -306,10 +307,14 @@ class SimulationEngine:
         ambient_temp = cfg.MONTHLY_TEMP_C[month]
         max_kw = cfg.max_generation_kw(self.coverage_pct)
 
-        # 2. Solar generation
+        # 2. Solar generation. In hybrid mode the profile and temperature come
+        # from the curated NASA snapshot via the shared helper, so the daily
+        # and annual models calibrate identically by construction.
+        base_profile, effective_temp = effective_generation_inputs(
+            cfg, self.season, ambient_temp)
         generation_kw = calc_generation(
-            hour, cfg.BASE_GENERATION_KW, max_kw,
-            cloud_cover=cloud, temperature=ambient_temp, coverage_pct=self.coverage_pct,
+            hour, base_profile, max_kw,
+            cloud_cover=cloud, temperature=effective_temp, coverage_pct=self.coverage_pct,
         )
 
         # 3. Municipal captive load
@@ -406,8 +411,9 @@ class SimulationEngine:
 
         # Curtailed energy displaces nothing: it is spilled or exported, so neither
         # carbon abatement nor tariff savings are credited against it.
-        co2_step = step_direct_kwh * cfg.CO2_GRID_KG_PER_KWH
-        cost_step = step_direct_kwh * (cfg.GRID_TARIFF_PER_KWH + cfg.OA_SURCHARGE_PER_KWH)
+        co2_step = step_direct_kwh * cfg.grid_emission_factor()
+        tariff_rate = cfg.tod_tariff_per_kwh(hour) + cfg.OA_SURCHARGE_PER_KWH
+        cost_step = step_direct_kwh * tariff_rate
         self._cumulative_co2 += co2_step
         self._cumulative_cost += cost_step
 
@@ -610,13 +616,19 @@ class SimulationEngine:
             month: {
                 "generation_kwh": 0.0, "bus_kwh": 0.0, "municipal_kwh": 0.0,
                 "direct_use_kwh": 0.0, "curtailed_kwh": 0.0, "grid_import_kwh": 0.0,
+                "revenue_inr": 0.0,
             }
             for month in DAYS_IN_MONTH
         }
 
+        flat_tariff = cfg.GRID_TARIFF_PER_KWH + cfg.OA_SURCHARGE_PER_KWH
+
         for month, days in DAYS_IN_MONTH.items():
             season = "monsoon" if month in MONSOON_MONTHS else "summer"
-            temp_c = cfg.MONTHLY_TEMP_C[month]
+            # Same shared helper as the daily step, so hybrid calibration
+            # applies identically here by construction (H1 fix).
+            base_profile, eff_temp_c = effective_generation_inputs(
+                cfg, season, cfg.MONTHLY_TEMP_C[month])
             bucket = monthly[month]
 
             for day in range(1, days + 1):
@@ -626,8 +638,9 @@ class SimulationEngine:
                         hour, season, seed=self.seed + month * 10_000 + day * 100 + hour
                     ) * cfg.CLOUD_COVER_MULTIPLIER)
                     generation_kw = calc_generation(
-                        hour, cfg.BASE_GENERATION_KW, max_kw,
-                        cloud_cover=cloud, temperature=temp_c, coverage_pct=self.coverage_pct,
+                        hour, base_profile, max_kw,
+                        cloud_cover=cloud, temperature=eff_temp_c,
+                        coverage_pct=self.coverage_pct,
                     )
                     bus_kw = energy_profile.get(hour, 0.0) * cfg.NUM_BUSES * mean_efficiency
                     if is_service_hour(hour, cfg.SERVICE_START_HOUR, cfg.SERVICE_END_HOUR):
@@ -637,6 +650,16 @@ class SimulationEngine:
 
                     direct_kw = min(generation_kw, demand_kw)
                     surplus_kw = generation_kw - demand_kw
+
+                    # Revenue accrues on self-consumed energy at the same rate
+                    # the daily step uses: the ToD tariff in hybrid mode, the
+                    # flat tariff otherwise (H2 fix).
+                    hourly_rate = (
+                        cfg.tod_tariff_per_kwh(float(hour))
+                        if cfg.DATA_MODE == "hybrid"
+                        else cfg.GRID_TARIFF_PER_KWH
+                    )
+                    bucket["revenue_inr"] += direct_kw * (hourly_rate + cfg.OA_SURCHARGE_PER_KWH)
 
                     bucket["generation_kwh"] += generation_kw
                     bucket["bus_kwh"] += bus_kw
@@ -648,7 +671,10 @@ class SimulationEngine:
                         bucket["grid_import_kwh"] -= surplus_kw
 
         total = {key: sum(monthly[m][key] for m in monthly) for key in monthly[1]}
-        tariff = cfg.GRID_TARIFF_PER_KWH + cfg.OA_SURCHARGE_PER_KWH
+        blended_retail_rate = (
+            total["revenue_inr"] / total["direct_use_kwh"]
+            if total["direct_use_kwh"] > 0 else flat_tariff
+        )
 
         return {
             "annual_generation_gwh": round(total["generation_kwh"] / 1e6, 2),
@@ -662,18 +688,22 @@ class SimulationEngine:
             "annual_bus_demand_gwh": round(total["bus_kwh"] / 1e6, 2),
             "annual_municipal_demand_gwh": round(total["municipal_kwh"] / 1e6, 2),
             "buses_powered": cfg.NUM_BUSES,
-            "annual_co2_tonnes": round(total["direct_use_kwh"] * cfg.CO2_GRID_KG_PER_KWH / 1000.0, 0),
+            "annual_co2_tonnes": round(total["direct_use_kwh"] * cfg.grid_emission_factor() / 1000.0, 0),
             "annual_co2_tonnes_if_all_generation_credited": round(
-                total["generation_kwh"] * cfg.CO2_GRID_KG_PER_KWH / 1000.0, 0
+                total["generation_kwh"] * cfg.grid_emission_factor() / 1000.0, 0
             ),
-            "annual_savings_inr_cr": round(total["direct_use_kwh"] * tariff / 1e7, 2),
+            "annual_savings_inr_cr": round(total["revenue_inr"] / 1e7, 2),
+            # Realized retail rate per self-consumed kWh (rate + surcharge),
+            # so Tab 3 can value the municipal share at the same rate the
+            # engine accrued. Equals the flat tariff in simulated mode.
+            "annual_blended_retail_inr_per_kwh": round(blended_retail_rate, 4),
             "monthly_generation_mwh": {m: round(monthly[m]["generation_kwh"] / 1e3, 1) for m in monthly},
             "monthly_bus_consumption_mwh": {m: round(monthly[m]["bus_kwh"] / 1e3, 1) for m in monthly},
             "monthly_direct_use_mwh": {m: round(monthly[m]["direct_use_kwh"] / 1e3, 1) for m in monthly},
             "monthly_curtailed_mwh": {m: round(monthly[m]["curtailed_kwh"] / 1e3, 1) for m in monthly},
             "monthly_grid_import_mwh": {m: round(monthly[m]["grid_import_kwh"] / 1e3, 1) for m in monthly},
             "monthly_co2_t": {
-                m: round(monthly[m]["direct_use_kwh"] * cfg.CO2_GRID_KG_PER_KWH / 1000.0, 1)
+                m: round(monthly[m]["direct_use_kwh"] * cfg.grid_emission_factor() / 1000.0, 1)
                 for m in monthly
             },
         }

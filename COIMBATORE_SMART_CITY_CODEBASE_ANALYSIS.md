@@ -2259,3 +2259,31 @@ Its honesty is equally deliberate. The grid-assisted swap tier is displayed rath
 The weaknesses in §13 are documentation drift and a few leftover declarations, not model defects. The largest substantive item is the `numpy` / pH duplication pair, both of which are one-line fixes.
 
 **Files referenced:** `app.py` · `src/config/settings.py` · `src/simulation/engine.py` · `src/algorithms/scheduler.py` · `src/algorithms/solar.py` · `src/models/bus.py` · `src/models/ecology.py` · `src/visualization/map.py` · `src/services/nasa_power.py` · `scripts/validate_results.py` · `scripts/probe_invariants.py` · `scripts/sweep_invariants.py` · `scripts/fit_shading.py` · `tests/*.py` · `docs/*.md` · `README.md` · `walkthrough.md` · `pyproject.toml` · `requirements.txt` · `requirements-dev.txt` · `.env.example` · `.gitignore`
+
+---
+
+## Addendum — post-audit remediation (2026-10-05, same day)
+
+A follow-up audit found uncommitted work (hybrid data modes, expanded network,
+ingest pipeline) carrying 3 critical, 6 high, 8 medium and 7 low anomalies.
+All were remediated and re-verified the same day:
+
+- **Hybrid mode is now real.** `src/services/hybrid_data.py` loads the curated
+  snapshots at runtime (NASA deviation scale + temperature, ToD tariffs, CEA
+  0.727) with baseline-identical fallbacks. Daily step and annual loop share
+  one helper; the annual model now applies hybrid solar + hourly ToD revenue
+  and reports the realised blend (Rs 7.61/kWh), which Tab 3 uses in hybrid mode.
+- **False calibration claim removed.** Sidebar and docs now state the ecology
+  model is benchmarked against compiled TNPCB/CCMC secondary data, not fitted.
+  Raw files were aligned (13th-month key dropped, hydrology matched to the
+  model baseline, provenance caveats added) and the curated NASA snapshot was
+  renamed off the runtime cache path.
+- **Fresh-clone green.** A session fixture regenerates `data/processed/`;
+  `data/raw/` handling fixed; all 5 ruff errors resolved; 41 new tests added
+  (loader, pipeline, accounting, boundaries, idempotency, map controls).
+- **Suite now: 383 passed, ruff clean, validate 40/40, sweep 44/44, probe 0
+  failures.** Full detail: `docs/HYBRID_DATA_MODES.md`.
+
+**Correction to §13.2:** hand-counting gave "39 executed checks"; `grep -c`
+on a live run confirms **40**. The docs' "40 checks" was correct; the audit
+doc's "24 physical invariants" remains unexplained.
