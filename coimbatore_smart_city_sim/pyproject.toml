@@ -1,0 +1,98 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coimbatore-smart-city-sim"
+version = "1.0.0"
+description = "Floating solar PV and electric bus transit simulation for Ukkadam Lake, Coimbatore"
+requires-python = ">=3.11"
+readme = "README.md"
+dependencies = [
+    "numpy>=1.26,<3.0",
+    "pandas>=2.2",
+    "streamlit>=1.40,<2.0",
+    "plotly>=5.22",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0,<9.0", "ruff>=0.6,<1.0"]
+
+[tool.setuptools]
+packages = ["src"]
+
+# ──────────────────────────────────────────────────────────────────────────
+# Ruff: lint and format
+# ──────────────────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# Never lint the virtualenv or build output.
+extend-exclude = [".venv", "__pycache__", ".pytest_cache", ".ruff_cache"]
+
+[tool.ruff.lint]
+# E/W  pycodestyle errors and warnings
+# F    pyflakes (unused imports, undefined names)
+# I    isort
+# UP   pyupgrade
+# B    bugbear (mutable defaults, shadowing)
+# SIM  simplify
+# RUF  ruff-specific
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = [
+    # Long lines are handled by the formatter; flagging them twice is noise.
+    "E501",
+    # `assert` in library code is used deliberately for internal invariants.
+    "B011",
+    # Star imports appear only in deliberate re-export shims.
+    "F403",
+    # The project uses `typing.Dict`/`List`/`Tuple` consistently for Python 3.11
+    # compatibility. Rewriting ~180 annotations to PEP 585/604 builtins would be a large
+    # diff with no behavioural benefit, so the modernisation rules are off deliberately.
+    "UP006",
+    "UP035",
+    "UP045",
+    # The UI is bilingual and unit symbols are meaningful: rupee, squared, degree,
+    # less-than-or-equal, times, arrow. Flagging these as "ambiguous" is wrong here.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    # `zip(a, a[1:])` reads better than `itertools.pairwise` for adjacent-step walks.
+    "RUF007",
+    # `int()` on an already-int value is used deliberately to document the hour index.
+    "RUF046",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assert on exact values and legitimately use long literal tables.
+"tests/*" = ["E731", "B015", "SIM117"]
+# The adversarial harnesses under scripts/ are deliberately terse and bootstrap
+# sys.path before importing the package, so a few rules do not fit them:
+#   E402  imports must follow the sys.path bootstrap, by design
+#   E702  probe bodies pack related assignments on one line for readability
+#   E731  a lambda reads better than a def for a one-line call site
+"scripts/*" = ["E731", "E402", "E702"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src", "scripts"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ──────────────────────────────────────────────────────────────────────────
+# pytest
+# ──────────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+# `-q` in the docs assumes quiet output; keep failure detail on demand.
+addopts = "--strict-markers --strict-config"
+markers = [
+    "performance: coarse performance guards with deliberately loose budgets",
+]
+filterwarnings = [
+    "error::DeprecationWarning:src.*",
+    "error::DeprecationWarning:tests.*",
+]

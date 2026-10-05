@@ -1,0 +1,19 @@
+# Runtime dependencies for the Coimbatore Smart City simulation.
+#
+# Only packages actually imported by the application are listed. Earlier revisions
+# also declared folium, streamlit-folium and numpy; none of them are imported any
+# more. The map is hand-written Leaflet markup (see src/visualization/map.py), and
+# numerical work uses the standard library.
+#
+# Upper bounds are pinned where a future major release would break the dashboard:
+# Streamlit 2.x is expected to remove the deprecated components.v1.html shim and to
+# change widget width handling again.
+
+streamlit>=1.32,<2
+pandas>=2.0
+plotly>=5.18
+
+# Optional. Only src/services/nasa_power.py imports it, and only on a cache miss, to
+# cross-check the embedded solar profile against NASA POWER irradiance. The dashboard
+# runs fully offline without it, falling back to SRRA/MNRE normals.
+requests>=2.31
