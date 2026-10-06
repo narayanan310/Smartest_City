@@ -66,18 +66,26 @@ def soc_legend_html() -> str:
     low = SOC_COLOUR_LOW_PCT
     mid = SOC_COLOUR_MID_PCT
     high = SOC_COLOUR_HIGH_PCT
+    # The band range and its name are separate spans so the range keeps a fixed
+    # width and the names align in a column. Keeping the text in a shrinkable span
+    # is what stops the longest label overflowing the legend box.
     labels = (
-        f"&lt;{_fmt_pct(low)}% critical",
-        f"{_fmt_pct(low)}-{_fmt_pct(mid)}% swap priority",
-        f"{_fmt_pct(mid)}-{_fmt_pct(high)}% moderate",
-        f"{_fmt_pct(high)}%+ healthy",
+        (f"&lt;{_fmt_pct(low)}%", "critical"),
+        (f"{_fmt_pct(low)}–{_fmt_pct(mid)}%", "swap priority"),
+        (f"{_fmt_pct(mid)}–{_fmt_pct(high)}%", "moderate"),
+        (f"{_fmt_pct(high)}%+", "healthy"),
     )
     # Colours run high to low in the legend, matching the original reading order.
     pairs = list(zip(reversed(SOC_COLOUR_SCALE), reversed(labels), strict=True))
-    return "\n".join(
-        f'  <div><span class="swatch" style="background:{colour}"></span>{label}</div>'
-        for colour, label in pairs
+    rows = "".join(
+        f'<span><span class="swatch" style="background:{colour}"></span>'
+        f'<span class="band">{band}</span><span class="word">{word}</span></span>'
+        for colour, (band, word) in pairs
     )
+    # One wrapper of flex rows rather than a grid of cells. The previous markup was
+    # a grid whose container also declared two columns, so consecutive rows flowed
+    # into the second column and the four corridors read as two merged pairs.
+    return f'<span class="legend-rows">{rows}</span>'
 
 
 def solar_style(gen_kw: float, max_kw: float, hour: float) -> Dict[str, Any]:
@@ -193,12 +201,18 @@ def build_interactive_map_html(
     initial_step: int = 0,
     fleet_size: int | None = None,
     max_kw: float | None = None,
+    theme: str = "dark",
 ) -> str:
     """Render the complete Leaflet document for the given trajectory.
 
     The returned HTML is a single self-contained component that renders exactly the
     step given by ``initial_step``. It does not animate on its own; the caller
     re-renders it as the simulation advances.
+
+    ``theme`` selects the palette the embed paints itself with. The document is an
+    iframe, so it cannot read the host page's theme; the caller passes the active
+    Streamlit theme down so the map tracks the rest of the dashboard instead of
+    staying dark on a light page.
     """
     if not frames:
         raise ValueError("build_interactive_map_html requires at least one trajectory frame")
@@ -217,6 +231,11 @@ def build_interactive_map_html(
     return _TEMPLATE.format(
         data=data_json,
         initial_step=step,
+        theme="light" if str(theme).lower() == "light" else "dark",
+        # Flattened: str.format cannot resolve ``mapping['key']`` inside a field
+        # name, so each palette token is passed under its own name.
+        **{f"map_{theme_name}_{k}": v for theme_name, pv in MAP_THEMES.items()
+           for k, v in pv.items()},
         south=south,
         west=west,
         north=north,
@@ -323,69 +342,210 @@ def _bus_condition(bus: Bus) -> str:
         return soc_status_label(soc)
 
 
+#: Embed palettes, keyed by the theme the dashboard is currently showing. The map is
+#: an iframe, so it cannot read the host theme from CSS; the caller passes it in.
+#: The dark ramp mirrors the dashboard's :root tokens so the two agree, and the light
+#: ramp is chosen for contrast on white rather than derived by inverting the dark one
+#: (an inverted amber loses most of its luminance and stops reading as the accent).
+MAP_THEMES = {
+    "dark": {
+        "bg": "#14161A",
+        "surface": "#1B1E24",
+        "line": "rgba(255,255,255,0.11)",
+        "text": "#E6EBF2",
+        "muted": "#9AA7B8",
+        "dim": "#5B6B7E",
+        "accent": "#F5B942",
+        "accent_soft": "rgba(245,185,66,0.12)",
+        "on_accent": "#1A1200",
+        "shadow": "0 8px 26px rgba(0,0,0,0.45)",
+    },
+    "light": {
+        "bg": "#F4F6F9",
+        "surface": "#FFFFFF",
+        "line": "rgba(15,23,42,0.14)",
+        "text": "#10161F",
+        "muted": "#475569",
+        "dim": "#64748B",
+        # 5.4:1 on --bg, so the clock and the button label both clear 4.5:1.
+        "accent": "#8A5A08",
+        "accent_soft": "rgba(180,120,10,0.12)",
+        # Near-black, matching the dashboard: the light amber fill is far too light
+        # to carry a white label (3.8:1), while black on it reaches 4.8:1.
+        "on_accent": "#10161F",
+        "shadow": "0 8px 22px rgba(15,23,42,0.14)",
+    },
+}
+
 _TEMPLATE = """<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-{theme}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-  html, body, #map {{ margin:0; padding:0; width:100%; height:100%;
-    background:#0B1422; font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,sans-serif;
-    overflow:hidden; }}
-  .hud {{ position:absolute; top:10px; left:10px; right:10px; z-index:1000;
-    background:rgba(11,20,34,0.93); border:1px solid rgba(56,189,248,0.35); border-radius:8px;
-    padding:8px 14px; color:#E2E8F0; display:flex; justify-content:space-between;
-    align-items:center; gap:12px; box-shadow:0 4px 16px rgba(0,0,0,0.5); font-size:13px; }}
-  .hud b {{ color:#38BDF8; }}
-  .hud-time {{ color:#FCD34D; font-weight:700; font-size:15px; }}
-  .hud-phase {{ color:#94A3B8; font-size:12px; display:block; margin-top:2px; }}
-  .hud-stats {{ display:flex; gap:14px; white-space:nowrap; font-size:11px; color:#CBD5E1; }}
-  .map-btn {{ position:absolute; top:62px; z-index:1000;
-    background:rgba(15,23,42,0.92); color:#38BDF8; border:1px solid rgba(56,189,248,0.45);
-    border-radius:8px; padding:6px 11px; font-size:11px; font-weight:600; cursor:pointer;
-    font-family:inherit; letter-spacing:0.02em; box-shadow:0 2px 8px rgba(0,0,0,0.5); }}
-  .map-btn:hover {{ background:rgba(56,189,248,0.22); color:#E0F2FE; }}
+  /* ── Palette ────────────────────────────────────────────────────────────────
+     Both themes are declared here and selected by the class on <html>, because
+     this document is an iframe and cannot inherit the host page's theme. The
+     caller passes the active Streamlit theme through, so the map always matches
+     the dashboard it sits in. The dark values mirror the dashboard's :root
+     tokens; the light values are their own ramp rather than inverted ones,
+     because pure inversion of an amber accent loses its contrast on white. */
+  :root {{
+    --bg:{map_dark_bg};
+    --surface:{map_dark_surface};
+    --line:{map_dark_line};
+    --text:{map_dark_text};
+    --muted:{map_dark_muted};
+    --dim:{map_dark_dim};
+    --accent:{map_dark_accent};
+    --accent-soft:{map_dark_accent_soft};
+    --on-accent:{map_dark_on_accent};
+    --shadow:{map_dark_shadow};
+    color-scheme:dark;
+  }}
+  .theme-light {{
+    --bg:{map_light_bg};
+    --surface:{map_light_surface};
+    --line:{map_light_line};
+    --text:{map_light_text};
+    --muted:{map_light_muted};
+    --dim:{map_light_dim};
+    --accent:{map_light_accent};
+    --accent-soft:{map_light_accent_soft};
+    --on-accent:{map_light_on_accent};
+    --shadow:{map_light_shadow};
+    color-scheme:light;
+  }}
+
+  html, body {{ margin:0; padding:0; height:100%; }}
+  body {{ background:var(--bg); color:var(--text); overflow:hidden;
+    font-family:'Outfit',-apple-system,BlinkMacSystemFont,Roboto,sans-serif; }}
+
+  /* ── Shell ─────────────────────────────────────────────────────────────────
+     Header, map and legend are three bands in a flex column rather than overlays
+     on the map. As absolute overlays the legend and the lake button both sat on
+     top of the network they were annotating, and the header title crowded the
+     first row of map tiles. */
+  .shell {{ display:flex; flex-direction:column; height:100vh; }}
+
+  .hud {{ flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:10px 18px; padding:11px 14px;
+    background:var(--surface); border-bottom:1px solid var(--line); font-size:12px; }}
+  .hud-main {{ min-width:0; flex:1 1 320px; }}
+  .hud-line {{ display:flex; align-items:baseline; flex-wrap:wrap; gap:0 10px; }}
+  .hud b {{ color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; }}
+  .hud-title {{ color:var(--muted); font-weight:600; letter-spacing:0.02em; }}
+  /* Amber in dark, a darker amber in light: the same hue held at 4.5:1 on both
+     grounds, so the clock reads as the accent without glowing on white. */
+  .hud-time {{ color:var(--accent); font-weight:700; font-size:14px;
+    font-variant-numeric:tabular-nums; }}
+  .hud-phase {{ color:var(--dim); font-size:11px; display:block; margin-top:2px;
+    max-width:70ch; line-height:1.4; }}
+  /* Each stat is its own grid cell so the labels align under each other rather
+     than floating at the width of their values. */
+  .hud-stats {{ display:grid; grid-auto-flow:column; gap:18px; font-size:11px;
+    color:var(--muted); }}
+  .hud-stats > span {{ display:flex; flex-direction:column; gap:1px; white-space:nowrap; }}
+  .hud-stats .k {{ color:var(--dim); font-size:9.5px; text-transform:uppercase;
+    letter-spacing:0.08em; font-weight:600; }}
+  .hud-stats b {{ font-size:12px; }}
+
+  /* A real button in the header row, so it can no longer overlap the HUD: its
+     position came from a hard-coded ``top`` offset that assumed a HUD height. */
+  /* Both header buttons share one class. They sit in the header's flex row rather
+     than at fixed offsets, which is what stops them landing on top of the HUD. */
+  .map-btn {{ flex:0 0 auto; align-self:center; background:var(--accent-soft);
+    color:var(--accent); border:1px solid var(--line); border-radius:8px;
+    padding:7px 12px; font-size:11px; font-weight:600; cursor:pointer;
+    font-family:inherit; letter-spacing:0.02em; white-space:nowrap;
+    transition:background .14s ease, color .14s ease, border-color .14s ease; }}
+  .map-btn:hover {{ background:var(--accent); color:var(--on-accent);
+    border-color:var(--accent); }}
   .map-btn:active {{ transform:translateY(1px); }}
-  #focusLake {{ left:14px; }}
-  #fitNetwork {{ left:108px; }}
-  .legend {{ position:absolute; bottom:14px; right:14px; z-index:1000;
-    background:rgba(15,23,42,0.92); border:1px solid rgba(56,189,248,0.35); border-radius:8px;
-    padding:10px 12px; color:#F8FAFC; font-size:11px; line-height:1.5; max-width:210px; max-height:360px; overflow-y:auto; }}
-  .legend h4 {{ margin:0 0 6px; font-size:12px; color:#38BDF8; }}
-  .legend div {{ display:flex; align-items:center; gap:6px; }}
-  .legend-route-row {{ cursor:pointer; padding:2px 4px; border-radius:4px; transition:background 0.15s; }}
-  .legend-route-row:hover {{ background:rgba(56,189,248,0.2); color:#38BDF8; }}
-  .swatch {{ display:inline-block; width:11px; height:11px; border-radius:50%; flex-shrink:0; }}
-  .line {{ display:inline-block; width:14px; height:3px; flex-shrink:0; }}
-  .leaflet-popup-content-wrapper {{ background:#0F172A; color:#E2E8F0;
-    border:1px solid rgba(56,189,248,0.4); border-radius:8px; }}
-  .leaflet-popup-tip {{ background:#0F172A; }}
-  .leaflet-popup-content {{ margin:10px 12px; font-size:12px; line-height:1.5; }}
+  /* Keyboard users get a visible focus ring; a mouse click does not show one. */
+  .map-btn:focus-visible {{ outline:2px solid var(--accent); outline-offset:2px; }}
+
+  #map {{ flex:1 1 auto; min-height:0; }}
+
+  /* ── Legend ────────────────────────────────────────────────────────────────
+     A band under the map. Rows are inline-flex with an explicit row *and*
+     column gap, so a narrow embed wraps them into tidy columns instead of
+     letting them run together or spill over the map. */
+  .legend {{ flex:0 0 auto; display:flex; flex-wrap:wrap; align-items:center;
+    gap:6px 22px; padding:9px 14px; background:var(--surface);
+    border-top:1px solid var(--line); font-size:11px; color:var(--muted); }}
+  .legend h4 {{ margin:0; font-size:9.5px; color:var(--dim); font-weight:600;
+    text-transform:uppercase; letter-spacing:0.09em; }}
+  /* `gap` sets both axes here: without a row gap the wrapped items touch, which is
+     what made the four corridors look merged into two. */
+  .legend-rows {{ display:flex; flex-wrap:wrap; align-items:center;
+    gap:3px 15px; min-width:0; }}
+  .legend-rows > span {{ display:flex; align-items:center; gap:6px; white-space:nowrap; }}
+  /* A corridor row is clickable: it frames that corridor. Kept on the row span so the
+     click target is the same box the legend lays out, rather than a block child that
+     would reintroduce the two-column merge this layout exists to prevent. */
+  .legend-rows .legend-route-row {{ cursor:pointer; padding:1px 4px; border-radius:4px;
+    transition:background .15s ease, color .15s ease; }}
+  .legend-rows .legend-route-row:hover {{ background:var(--accent-soft); color:var(--accent); }}
+  .swatch {{ width:10px; height:10px; border-radius:50%; flex:0 0 auto; }}
+  .line {{ width:14px; height:3px; border-radius:2px; flex:0 0 auto; }}
+  /* Tabular figures keep the four ranges the same width so the labels line up. */
+  .band {{ font-variant-numeric:tabular-nums; color:var(--text); }}
+  .word, .rid {{ color:var(--muted); }}
+
+  .leaflet-popup-content-wrapper {{ background:var(--surface); color:var(--text);
+    border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); }}
+  .leaflet-popup-tip {{ background:var(--surface); border:1px solid var(--line); }}
+  .leaflet-popup-content {{ margin:11px 13px; font-size:12px; line-height:1.65;
+    font-variant-numeric:tabular-nums; color:var(--text); }}
+  .leaflet-popup-content b {{ color:var(--muted); font-weight:500; }}
+  .leaflet-container a.leaflet-popup-close-button {{ color:var(--dim); }}
+  .leaflet-container a.leaflet-popup-close-button:hover {{ color:var(--text); }}
+  /* Tooltips inherit the same surfaces, otherwise they render white-on-white in
+     the light theme. */
+  .leaflet-tooltip {{ background:var(--surface); color:var(--text);
+    border:1px solid var(--line); box-shadow:var(--shadow); font-size:11px; }}
+  .leaflet-tooltip-top:before {{ border-top-color:var(--line); }}
+  .leaflet-control-attribution {{ background:var(--surface) !important;
+    color:var(--dim) !important; font-size:9.5px !important; }}
+  .leaflet-control-attribution a {{ color:var(--muted) !important; }}
+  .leaflet-bar a {{ background:var(--surface); color:var(--text);
+    border-bottom-color:var(--line); }}
+  .leaflet-bar a:hover {{ background:var(--bg); color:var(--accent); }}
+  /* Respect a reader who has asked for less motion. */
+  @media (prefers-reduced-motion: reduce) {{ * {{ transition:none !important; }} }}
 </style>
 </head>
 <body>
-<div id="map"></div>
+<div class="shell">
 <div class="hud">
-  <div>
-    <b>Coimbatore Transit &amp; Floating Solar</b>
-    <span class="hud-time" id="clock">--:--</span>
+  <div class="hud-main">
+    <span class="hud-line">
+      <span class="hud-title">Coimbatore transit &amp; floating solar</span>
+      <span class="hud-time" id="clock">--:--</span>
+    </span>
     <span class="hud-phase" id="phase"></span>
   </div>
   <div class="hud-stats">
-    <span>&#9728;&#65039; <b id="gen">0</b> kW</span>
-    <span>&#128674; <b id="load">0</b> kW</span>
-    <span>&#128267; <b id="swaps">0</b></span>
-    <span>&#128167; <b id="do">--</b> mg/L</span>
+    <span><span class="k">Generation</span> <b id="gen">0</b> kW</span>
+    <span><span class="k">Load</span> <b id="load">0</b> kW</span>
+    <span><span class="k">Swaps</span> <b id="swaps">0</b></span>
+    <span><span class="k">DO</span> <b id="do">--</b> mg/L</span>
   </div>
+  <button id="focusLake" class="map-btn" type="button" title="Frame the Ukkadam Lake floating array">Focus lake</button>
+  <button id="fitNetwork" class="map-btn" type="button" title="Fit all transit corridors and swap hubs across Coimbatore">Show all routes</button>
 </div>
-<button id="focusLake" class="map-btn" type="button" title="Frame the Ukkadam Lake floating array">Focus lake</button>
-<button id="fitNetwork" class="map-btn" type="button" title="Fit all transit corridors and swap hubs across Coimbatore">Show all routes</button>
+<div id="map"></div>
 <div class="legend">
-  <h4>Corridors &amp; fleet status</h4>
-  <div id="legendRoutes"></div>
-  <h4 style="margin-top:8px;">State of charge</h4>
+  <h4>Corridors</h4><span id="legendRoutes" class="legend-rows"></span>
+  <h4>State of charge</h4>
 {soc_legend}
+</div>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -393,6 +553,13 @@ const D = {data};
 const STATE_NAMES = {state_names};
 const CHARGE_RATE = {charge_rate};
 const CAPACITY_MWP = {capacity_mwp};
+
+// Read a palette value out of CSS so the few canvas-drawn colours that must match
+// the theme (marker outlines and fills) follow the same tokens the CSS uses,
+// instead of being frozen to the dark ramp at template-build time.
+const css = (name) => getComputedStyle(document.documentElement)
+  .getPropertyValue(name).trim() || '#888';
+const INK = css('--text'), PAPER = css('--surface');
 
 function fmtClock(hour) {{
   const h = Math.floor(hour);
@@ -443,6 +610,8 @@ const solarLayer = L.polygon(D.solarPolygon,
   }});
 }})();
 
+// Refits the whole network, undoing either control above. Present because "Focus
+// lake" is destructive to the opening view and the reader needs a way back.
 (function () {{
   var btn = document.getElementById('fitNetwork');
   if (!btn) return;
@@ -459,27 +628,38 @@ const solarLayer = L.polygon(D.solarPolygon,
 
 const legendRoutes = document.getElementById('legendRoutes');
 for (const [rid, info] of Object.entries(D.routes)) {{
-  const poly = L.polyline(info.waypoints, {{ color:info.color, weight:4, opacity:0.85 }}).addTo(map)
+  const poly = L.polyline(info.waypoints, {{ color:info.color, weight:4, opacity:0.85 }})
+    .addTo(map)
     .bindTooltip('<b>' + rid + '</b>: ' + info.name + '<br>' + info.buses + ' buses &bull; '
                  + info.stopNames.length + ' named stops');
   const w = info.waypoints;
-  L.circleMarker(w[0], {{ radius:4, color:info.color, fillColor:'#fff', fillOpacity:1 }}).addTo(map);
-  L.circleMarker(w[w.length-1], {{ radius:4, color:info.color, fillColor:'#fff', fillOpacity:1 }}).addTo(map);
+  L.circleMarker(w[0], {{ radius:4, color:info.color, fillColor:PAPER, fillOpacity:1 }}).addTo(map);
+  L.circleMarker(w[w.length-1], {{ radius:4, color:info.color, fillColor:PAPER, fillOpacity:1 }}).addTo(map);
   info.stopNames.forEach((name, i) => {{
     const idx = info.stopIndices[i] ??
       Math.round(i * (w.length - 1) / Math.max(1, info.stopNames.length - 1));
     L.circleMarker(w[idx], {{ radius:5, color:info.color, weight:2,
-      fillColor:'#0F172A', fillOpacity:1 }}).addTo(map)
+      fillColor:INK, fillOpacity:1 }}).addTo(map)
       .bindTooltip('<b>' + rid + ' &middot; ' + name + '</b><br>Operational stop');
   }});
-  const row = document.createElement('div');
+  // The corridor id is the legend's whole job; the long name is a tooltip. Inline
+  // text at this size would wrap into the neighbouring row and read as a merge.
+  // The row is a span, matching the SOC rows, so both sets share one flex layout.
+  const row = document.createElement('span');
   row.className = 'legend-route-row';
   row.title = 'Click to zoom to ' + rid + ' (' + info.name + ')';
+  row.tabIndex = 0;
   row.innerHTML = '<span class="line" style="background:' + info.color + '"></span>'
-    + '<span style="font-weight:600">' + rid + '</span>';
-  row.addEventListener('click', () => {{
+    + '<span class="rid">' + rid + '</span>';
+  function zoomToRoute() {{
     map.fitBounds(poly.getBounds(), {{ padding: [60, 60] }});
     poly.openTooltip();
+  }}
+  row.addEventListener('click', zoomToRoute);
+  // Keyboard parity: a focusable row that only responds to a mouse is a trap for
+  // anyone tabbing through the legend.
+  row.addEventListener('keydown', function (e) {{
+    if (e.key === 'Enter' || e.key === ' ') {{ e.preventDefault(); zoomToRoute(); }}
   }});
   legendRoutes.appendChild(row);
 }}
@@ -508,21 +688,15 @@ for (const st of D.stations) {{
       + ' packs<br>Service zone: 2 km');
 }}
 
-const markers = [];
-for (let i = 0; i < D.busCount; i++) {{
-  markers.push(L.circleMarker([D.lat[0][i] / {coord_scale}, D.lon[0][i] / {coord_scale}],
-    {{ radius:5.5, color:'#fff', weight:1.2, fillColor:'#22C55E', fillOpacity:0.92 }}).addTo(map));
-}}
-
 function popupHtml(i, step) {{
   const soc = D.soc[step][i] / {soc_scale};
   const st = STATE_NAMES[D.state[step][i]] || 'depot';
   let badge = '<span style="color:#22C55E">Running in service</span>';
-  if (st === 'swapping') badge = '<span style="color:#38BDF8;font-weight:700">Swapping battery</span>';
+  if (st === 'swapping') badge = '<span style="color:#F5B942;font-weight:700">Swapping battery</span>';
   else if (st === 'heading_to_swap') badge = '<span style="color:#F97316;font-weight:700">Diverting to swap hub</span>';
   else if (st === 'depot') badge = '<span style="color:#94A3B8">At depot</span>';
   else if (soc < {soc_swap}) badge = '<span style="color:#EF4444;font-weight:700">Low SOC &mdash; swap priority</span>';
-  return '<b style="font-size:13px;color:#38BDF8">Bus #' + D.busId[i] + '</b><br>'
+  return '<b style="font-size:13px;color:#F5B942">Bus #' + D.busId[i] + '</b><br>'
     + '<b>Corridor:</b> ' + D.busRoute[i] + '<br>'
     + '<b>SOC:</b> <b style="color:' + socColour(soc) + '">' + soc.toFixed(1) + '%</b><br>'
     + '<b>Stored:</b> ' + (soc / 100 * D.batteryKwh).toFixed(0) + ' kWh<br>'
@@ -531,6 +705,16 @@ function popupHtml(i, step) {{
     + '<b>Stops:</b> ' + D.stops[step][i] + '<br>'
     + '<b>Energy used:</b> ' + D.busEnergy[i] + ' kWh<br>'
     + '<b>Nearest hub:</b> ' + D.busStation[i] + ' (' + D.busStationKm[i] + ' km)';
+}}
+
+// Popups are bound here, after `popupHtml` is defined. `render` then refreshes the
+// content of whichever popup is open, rather than rewriting all of them every frame.
+const markers = [];
+for (let i = 0; i < D.busCount; i++) {{
+  const m = L.circleMarker([D.lat[0][i] / {coord_scale}, D.lon[0][i] / {coord_scale}],
+    {{ radius:5.5, color:INK, weight:1.2, fillColor:'#22C55E', fillOpacity:0.92 }}).addTo(map);
+  m.bindPopup(popupHtml(i, 0));
+  markers.push(m);
 }}
 
 function render(step) {{
@@ -572,13 +756,20 @@ function render(step) {{
     }}
   }}
 
+  // Hoisting the repeated per-bus scale divisions out of the loop halves the
+  // arithmetic the renderer does per frame.
+  const invCoord = 1 / {coord_scale};
+  const invSoc = 1 / {soc_scale};
   for (let i = 0; i < markers.length; i++) {{
-    const soc = D.soc[s][i] / {soc_scale};
+    const soc = D.soc[s][i] * invSoc;
     const st = D.state[s][i];
     const radius = (st === 's') ? 7.5 : (soc < {soc_swap} ? 6.5 : 5.5);
-    markers[i].setLatLng([D.lat[s][i] / {coord_scale}, D.lon[s][i] / {coord_scale}]);
+    markers[i].setLatLng([D.lat[s][i] * invCoord, D.lon[s][i] * invCoord]);
     markers[i].setStyle({{ fillColor: socColour(soc), radius }});
-    markers[i].setPopupContent(popupHtml(i, s));
+    // Only rewrite the popup when it is open, so clicking a bus does not rebuild
+    // the HTML of all 260 markers on every frame.
+    const m = markers[i];
+    if (m.isPopupOpen()) m.setPopupContent(popupHtml(i, s));
   }}
 }}
 

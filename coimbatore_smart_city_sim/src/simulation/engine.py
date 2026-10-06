@@ -714,20 +714,25 @@ class SimulationEngine:
 
 
 def phase_story(hour: int) -> str:
-    """Narrative phase label for the current hour, used for presentation."""
+    """Narrative phase label for the current hour, used for presentation.
+
+    Plain text with no decorative emoji: this string is rendered in the clock strip
+    and the map HUD, where a glyph set of mixed platform rendering competes with the
+    label rather than aiding it.
+    """
     if hour <= 5:
-        return "🌙 Night Basetime — Fleet at depot, array dormant, lake respiration dominates"
+        return "Night basetime — fleet at depot, array dormant, lake respiration dominates"
     if hour <= 8:
-        return "🌅 Sunrise & Morning Rush — Buses enter service, generation ramps up"
+        return "Sunrise & morning rush — buses enter service, generation ramps up"
     if hour <= 11:
-        return "⚡ Solar Surplus Develops — Generation overtakes traction and municipal load"
+        return "Solar surplus develops — generation overtakes traction and municipal load"
     if hour <= 13:
-        return "☀️ Noon Peak — Maximum surplus, solar-funded swap window opens"
+        return "Noon peak — maximum surplus, solar-funded swap window opens"
     if hour <= 16:
-        return "📉 Afternoon Tapering — Surplus shrinks, remaining swaps become grid-assisted"
+        return "Afternoon tapering — surplus shrinks, remaining swaps become grid-assisted"
     if hour <= 19:
-        return "🌇 Evening Commute Peak — Array offline, fleet runs on swapped packs, grid carries load"
-    return "🌌 Night Transition — Buses return to depot, lake dissolved oxygen recovers"
+        return "Evening commute peak — array offline, fleet runs on swapped packs, grid carries load"
+    return "Night transition — buses return to depot, lake dissolved oxygen recovers"
 
 
 if __name__ == "__main__":

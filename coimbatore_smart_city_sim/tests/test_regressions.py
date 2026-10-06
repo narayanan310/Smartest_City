@@ -11,6 +11,7 @@ import ast
 import math
 import pathlib
 import random
+import re
 
 import pytest
 
@@ -843,16 +844,34 @@ def test_soc_legend_is_generated_from_the_configured_boundaries():
     for colour in SOC_COLOUR_SCALE:
         assert colour in html, f"{colour} missing from the legend"
 
+    # The band range and its name live in separate spans so the legend rows stay
+    # independently sized. Compare on the rendered text rather than on raw markup,
+    # so this still pins the generated *content* rather than the exact tag structure.
+    text = re.sub(r"<[^>]+>", " ", html)
+    text = " ".join(text.split())
+
     low = f"{SOC_COLOUR_LOW_PCT:g}"
     mid = f"{SOC_COLOUR_MID_PCT:g}"
     high = f"{SOC_COLOUR_HIGH_PCT:g}"
-    assert f"&lt;{low}% critical" in html
-    assert f"{low}-{mid}% swap priority" in html
-    assert f"{mid}-{high}% moderate" in html
-    assert f"{high}%+ healthy" in html
+    assert f"&lt;{low}% critical" in text
+    assert f"{low}–{mid}% swap priority" in text
+    assert f"{mid}–{high}% moderate" in text
+    assert f"{high}%+ healthy" in text
 
     # The generated labels must describe the code's actual boundaries.
-    assert ">70% healthy" not in html, "the old exclusive label must be gone"
+    assert ">70% healthy" not in text, "the old exclusive label must be gone"
+
+    # Regression: the range and the name must be emitted as separate spans. One
+    # undivided span could not shrink, so the longest label overflowed its row.
+    assert html.count('class="band"') == 4, "each band needs its own range span"
+    assert html.count('class="word"') == 4, "each band needs its own name span"
+
+    # Regression: the legend is a band of wrapping rows, not a grid of cells. The
+    # container was a two-column grid, so consecutive corridor rows flowed into the
+    # second column and the four corridors read as two merged pairs. Pin the single
+    # shared row container, which is what stops that.
+    assert html.count('class="legend-rows"') == 1, "one row container for the whole legend"
+    assert "<div>" not in html, "legend rows must be inline, not block cells"
 
 
 def test_rendered_map_uses_configured_soc_bands_in_js_and_legend():
@@ -1318,3 +1337,167 @@ def test_no_energy_consumer_can_return_negative_energy():
     state = {"Hub": {"ready_packs": 0, "charging_packs": [50.0], "charging_queue": []}}
     with pytest.raises(ValueError):
         process_station_charging(state, -1.0, 150.0)
+
+
+def test_both_palettes_are_declared_and_both_reach_the_page():
+    """The stylesheet once declared a dark palette only, so light mode repainted only
+    the widgets Streamlit owns and the cards stayed dark. Both palettes must exist,
+    be selectable, and cover the same tokens."""
+    from src.visualization.theme import _TOKEN_NAMES, DARK, LIGHT, tokens_css
+
+    css = tokens_css()
+
+    # Same token set in both palettes: a token present in one and missing from the
+    # other silently falls back to the dark value on a light page.
+    assert set(_TOKEN_NAMES) <= set(DARK), sorted(set(_TOKEN_NAMES) - set(DARK))
+    assert set(_TOKEN_NAMES) <= set(LIGHT), sorted(set(_TOKEN_NAMES) - set(LIGHT))
+
+    for key, name in _TOKEN_NAMES.items():
+        assert f"--{name}:{DARK[key]}" in css, f"dark --{name} missing from the stylesheet"
+        assert f"--{name}:{LIGHT[key]}" in css, f"light --{name} missing from the stylesheet"
+
+    # Dark is the base, so the page is correct before any script runs. The hex comes
+    # from the palette, not from a literal here: pinning it would fail the test on
+    # every deliberate colour change.
+    assert re.search(rf":root\s*\{{[^}}]*--bg-app:{re.escape(DARK['bg_app'])};",
+                     css, re.S), "no dark base block"
+    # Light must be reachable from the theme the app publishes...
+    assert ':root:has(.theme-sentinel[data-theme="light"])' in css
+    # ...and from the OS preference when the runtime reports no theme.
+    assert "@media (prefers-color-scheme: light)" in css
+    assert ":root:not(:has(.theme-sentinel))" in css
+
+
+def test_the_app_publishes_its_resolved_theme_for_the_css():
+    """The light rules key off a sentinel the app renders, because Streamlit puts the
+    theme nowhere the stylesheet can select."""
+    from src.visualization.theme import resolve_theme, sentinel_html
+
+    app_src = (pathlib.Path(__file__).resolve().parents[1] / "app.py").read_text()
+    assert "st.markdown(sentinel_html(THEME)" in app_src, \
+        "the sentinel is what the :has() rules match on"
+    assert resolve_theme() in ("light", "dark"), "an unknown theme must fall back, not crash"
+    assert 'data-theme="light"' in sentinel_html("light")
+    assert 'data-theme="dark"' in sentinel_html("dark")
+    # An unrecognised value must be normalised, never passed through to the attribute.
+    assert sentinel_html("dark-extra") == sentinel_html("dark")
+
+
+def test_the_map_embed_tracks_the_theme():
+    """The embed is an iframe and cannot read the host theme, so the app passes it in
+    and the map cache key includes it: without the key, switching theme re-ran the
+    script but left the map painted in the old palette."""
+    from src.config.settings import Config as Cfg
+    from src.simulation.engine import SimulationEngine
+    from src.visualization.map import MAP_THEMES, build_frame_trajectory, build_interactive_map_html
+
+    cfg = Cfg()
+    frames = build_frame_trajectory(SimulationEngine(cfg), cfg)
+
+    dark = build_interactive_map_html(cfg, frames, 0, theme="dark")
+    light = build_interactive_map_html(cfg, frames, 0, theme="light")
+
+    assert '<html lang="en" class="theme-dark">' in dark
+    assert '<html lang="en" class="theme-light">' in light
+    # Both palettes ship in both documents; the class on <html> selects one. So the
+    # assertion is that the two differ, not that one palette is absent from the other.
+    assert dark != light, "the theme argument did not change the rendered document"
+    # The light block must actually be present, or the class selects nothing.
+    assert ".theme-light {" in light and f"--bg:{MAP_THEMES['light']['bg']}" in light
+    # An unrecognised theme resolves to dark rather than producing an unstyled map.
+    assert build_interactive_map_html(cfg, frames, 0, theme="sepia") == dark
+
+    app_src = (pathlib.Path(__file__).resolve().parents[1] / "app.py").read_text()
+    assert "theme=THEME" in app_src, "the map must be told which theme is active"
+    assert "map_key = (map_step, THEME)" in app_src, \
+        "a theme switch must invalidate the cached map document"
+
+
+def _chart_calls_in_columns(app_src: str):
+    """Yield the line number of every ``chart()`` call that sits in a column.
+
+    Streamlit columns are always entered as ``with <name>:``, so a chart whose
+    nearest enclosing ``with`` binds a plain name is in a half-width column. Tabs
+    bind at a shallower indent and are excluded by the name check, so this
+    distinguishes "in a column" from "full width" without guessing at widths.
+    """
+    tab_names = {"tab_live", "tab_scenarios", "tab_finance", "tab_annual",
+                 "sidebar", "expander", "top", "hero_left", "hero_right",
+                 "telem_left", "telem_right", "map_toggle", "map_gutter"}
+    lines = app_src.splitlines()
+    for i, line in enumerate(lines):
+        if line.strip() != "chart(":
+            continue
+        indent = len(line) - len(line.lstrip())
+        enclosing = None
+        for j in range(i - 1, -1, -1):
+            m = re.match(r"^(\s*)with ([A-Za-z_][A-Za-z0-9_]*)\s*:\s*$", lines[j])
+            if m and len(m.group(1)) < indent:
+                enclosing = m.group(2)
+                break
+        if enclosing and enclosing not in tab_names:
+            yield i + 1, enclosing
+
+
+def test_every_chart_in_a_column_declares_itself_narrow():
+    """The reported fault: charts were perfect full-screen but their legend and axis
+    labels overlapped inside a half-width column. One fixed margin set cannot serve
+    both widths, so a chart in a column has to opt into the narrow geometry."""
+    app_src = (pathlib.Path(__file__).resolve().parents[1] / "app.py").read_text()
+    in_columns = list(_chart_calls_in_columns(app_src))
+    assert in_columns, "expected the dashboard to still have charts in columns"
+
+    # Each column chart must pass narrow=True within its own call.
+    lines = app_src.splitlines()
+    unmarked = []
+    for lineno, column in in_columns:
+        indent = len(lines[lineno - 1]) - len(lines[lineno - 1].lstrip())
+        close = next(k for k in range(lineno, len(lines))
+                     if lines[k].strip() == ")"
+                     and len(lines[k]) - len(lines[k].lstrip()) == indent)
+        if "narrow=True" not in "".join(lines[lineno:close]):
+            unmarked.append((lineno, column))
+    assert not unmarked, f"charts in a column missing narrow=True: {unmarked}"
+
+
+def test_chart_chrome_measures_its_axes_instead_of_guessing_margins():
+    """The overlap happened because margins were fixed numbers: 52px of left margin
+    is generous full width and narrower than the y-axis title at half width, and the
+    legend wrapped to a second row the bottom margin had no room for.
+
+    Three things must hold for the layout to hold at any width: Plotly measures the
+    axes itself, the legend's rows are countable in advance, and the bottom margin is
+    derived from that count rather than guessed.
+    """
+    app_src = (pathlib.Path(__file__).resolve().parents[1] / "app.py").read_text()
+    body = app_src[app_src.index("def chart(fig: go.Figure"):]
+    # The function ends at the next top-level definition or banner; chart() happens to
+    # be the last one before the sidebar, so slicing on a fixed successor is brittle.
+    m = re.search(r"\n(?=(?:def |# ─|@st\.|init_session))", body[1:])
+    assert m, "could not find the end of chart(); has its position moved?"
+    body = body[: m.start() + 1]
+
+    assert "automargin=True" in body, (
+        "axes must use automargin so Plotly grows the margin to fit its own labels"
+    )
+    assert "entrywidth=CHART_LEGEND_ENTRY_PX" in body, (
+        "legend entries need a fixed width or the row count is unpredictable"
+    )
+    assert "entrywidthmode=" in body, "entrywidth is inert without its mode"
+    assert "rows * CHART_LEGEND_ROW_PX" in body, (
+        "the bottom margin must be reserved from the computed legend row count"
+    )
+    # Axis titles are re-issued with themed type, so they scale with narrow=True
+    # instead of staying a size larger than everything around them.
+    assert 'spec["title"] = dict(text=label' in body
+    assert 'font=dict(size=axis_size' in body
+
+    # The grid colour has one owner: chart() sets it once from the palette, and no call
+    # site restates it. A call site that does is pinning a value that then stops
+    # following the theme.
+    after = app_src[app_src.index("def chart(fig: go.Figure"):]
+    tail = after[after.index("return fig") + len("return fig"):]
+    assert body.count("gridcolor=") == 1, "chart() must own the grid colour"
+    assert "gridcolor=" not in tail, (
+        "a chart call site restates gridcolor; it would stop following the theme"
+    )

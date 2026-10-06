@@ -309,26 +309,34 @@ def check_ecology(do_level: float, coverage_pct: float) -> Tuple[str, str]:
     always reports the measured dissolved oxygen so the two are never confused.
 
     Statuses: ``CRITICAL`` (>cap) | ``EMERGENCY`` (<3.0) | ``WARNING`` (<4.0) | ``OK``
+
+    Messages are plain prose with no status glyph: the badge that renders this already
+    carries the status name in a coloured border and an uppercase heading, so a second
+    symbol inside the sentence is redundant and renders inconsistently across
+    platforms.
     """
     if coverage_pct > 15.0:
         return (
             "CRITICAL",
-            f"⛔ Coverage {coverage_pct:.1f}% exceeds the 15% ecological cap "
+            f"Coverage {coverage_pct:.1f}% exceeds the 15% ecological cap "
             f"(current DO = {do_level:.2f} mg/L). Non-compliant scenario.",
         )
     if do_level < 3.0:
         return (
             "EMERGENCY",
-            f"🚨 DO = {do_level:.2f} mg/L (<3 mg/L)! Mechanical aeration activated to prevent fish kill.",
+            f"DO = {do_level:.2f} mg/L, below the 3.0 mg/L emergency trigger. "
+            f"Mechanical aeration activated to prevent fish kill.",
         )
     if do_level < 4.0:
         return (
             "WARNING",
-            f"⚠️ DO = {do_level:.2f} mg/L (<4 mg/L threshold). Dissolved oxygen depressed; monitoring closely.",
+            f"DO = {do_level:.2f} mg/L, below the 4.0 mg/L threshold. "
+            f"Dissolved oxygen depressed; monitoring closely.",
         )
     return (
         "OK",
-        f"✅ DO = {do_level:.2f} mg/L (healthy, ≥4 mg/L). 15% coverage cap strictly maintained.",
+        f"DO = {do_level:.2f} mg/L, at or above the 4.0 mg/L minimum. "
+        f"15% coverage cap strictly maintained.",
     )
 
 
